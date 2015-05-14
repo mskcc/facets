@@ -1,0 +1,13 @@
+Package: facets
+Type: Package
+Title: Cellular Fraction and Copy Numbers from Tumor Sequencing
+Version: 0.1.0
+Date: 2015-05-04
+Author: Venkatraman E. Seshan
+Maintainer: Venkatraman E. Seshan <seshanv@mskcc.org>
+Description: Algorithm to implement Fraction and Copy number Estimate 
+        from Tumor/normal Sequencing.
+License: GPL (>= 2)
+Depends: R (>= 2.10)
+NeedsCompilation: yes
+Packaged: 2015-05-06 16:01:16 UTC; seshanv
