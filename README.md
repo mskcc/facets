@@ -1,2 +1,2 @@
 # facets
-Algorithm to implement Fraction and Copy number Estimate from Tumor/normal Sequencing.
+Algorithm to implement Fraction and Allele specific Copy number Estimate from Tumor/normal Sequencing.
