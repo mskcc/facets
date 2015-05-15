@@ -5,8 +5,8 @@
   Processes a snp read count matrix and generates a segmentation tree
 }
 \usage{
-  preProcSample(filename, ndepth=35, het.thresh=0.25, snp.nbhd=250, cval=25,
-                chromlevels=c(1:22,"X"))
+  preProcSample(filename, ndepth=35, het.thresh=0.25, snp.nbhd=250,
+                cval=25, chromlevels=c(1:22,"X"))
 }
 \arguments{
   \item{filename}{input matrix of read depths and variant allele frequencies}

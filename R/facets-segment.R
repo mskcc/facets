@@ -89,10 +89,12 @@ prune.cpt.tree <- function(seg.tree, cval=25) {
     # first row is the whole chromosome; so it is always kept
     keep[1] <- 1
     # now check all daughter nodes and keep them depending on parent node
-    for(i in 2:k) {
-        parent.node <- seg.tree[i,1]
-        # keep a segment if the parent segment is kept and stat > cval
-        if (keep[parent.node]==1 & seg.tree[parent.node, 4] > cval) keep[i] <- 1
+    if (k > 1) {
+        for(i in 2:k) {
+            parent.node <- seg.tree[i,1]
+            # keep a segment if the parent segment is kept and stat > cval
+            if (keep[parent.node]==1 & seg.tree[parent.node, 4] > cval) keep[i] <- 1
+        }
     }
     # segments that are kept (0 and the end of each kept segment)
     c(0, sort(unique(seg.tree[keep==1,3])))
