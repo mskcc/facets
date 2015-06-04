@@ -366,8 +366,12 @@ emcncf=function(jointseg,out,trace=F,unif=F,dipLogR=NA,dipt=NA,maxiter=10,eps=1e
       rho.modes=find.mode(na.omit(rep(rhov.long,nmark)))
       rho=rho.modes$rho
     }else{
-      den=density(na.omit(rep(rhov.long,nmark)))
-      rho=den$x[which.max(den$y)]
+      if(sum(!is.na(rhov.long))>5){
+        den=density(na.omit(rep(rhov.long,nmark)))
+        rho=den$x[which.max(den$y)]
+        }else{
+          rho=mean(rhov.long[rhov.long>0.1],na.rm=T)
+        }
     }
             
     #for noninformative region, plug in sample purity
