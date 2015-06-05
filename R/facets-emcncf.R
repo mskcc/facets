@@ -34,7 +34,7 @@ emcncf=function(jointseg,out,trace=F,unif=F,dipLogR=NA,dipt=NA,maxiter=10,eps=1e
   var=var(jointseg$cnlr,na.rm=T)    
   if(var>0.6){
     fit="Noisy sample"
-    stop("Noisy sample")
+    warning("Noisy sample. Calls unreliable.",call.=F)
   }
   
   #consider genotypes up to t=6, assume minor alelle is B, switch to cncf for high copy numbers (t>6) for computational efficiency
@@ -347,7 +347,11 @@ emcncf=function(jointseg,out,trace=F,unif=F,dipLogR=NA,dipt=NA,maxiter=10,eps=1e
     which.geno.long=which.geno[seg$segclust] 
     #rhov.long=rhov.long[which.geno.long!=4]
     rhov.long[which.geno.long == 4]=NA
-    rhov.long[seglen<40]=NA
+    if(all(is.na(rhov.long[seglen>=40]))){      
+      warning("Insufficient information to call reliably",call.=F)      
+    }else{
+      rhov.long[seglen<40]=NA
+    }
     
     
     if(lowpur){      
