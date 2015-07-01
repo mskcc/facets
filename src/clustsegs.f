@@ -1,7 +1,7 @@
 c     Calculate Mann-Whitney statistic for x and y already sorted
-      subroutine mwstat(x, n, y, m, ustat)
+      subroutine mwstat(x, n, y, m, ustat, auc)
       integer n, m
-      double precision x(n), y(m), ustat
+      double precision x(n), y(m), ustat, auc
 
       double precision currenty, dm, dn, numlt, numeq
       integer i, j
@@ -62,6 +62,7 @@ c     finally add the bit for ties
          if (x(i) .eq. currenty) ustat = ustat + 0.5*numeq
 c         call dblepr("numlt",5,numlt,1)
  50   continue
+      auc = ustat/(dm*dn)
       ustat = (ustat - dm*dn/2.0)**2/(dm*dn*(dm+dn+1)/12.0)
 
       return

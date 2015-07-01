@@ -40,20 +40,21 @@ clustersegs <- function(jointseg, out, min.nhet=25, cval=35) {
                 icnlr <- sort(jseg$cnlr[ijj])
                 ivalor <- sort(abs(jseg$valor[ijj & finitevalor]))
                 # log-ratio wilcoxon statistic
-                stat1 <- lapply(ccnlr, function(x, y) {
-                    mwstat(x,y)
-                }, icnlr)
+                stat1 <- simplify2array(lapply(ccnlr, function(x, y) {
+                                                   mwstat(x,y)
+                                               }, icnlr))
                 # log odds ratio wilcoxon statistic
-                stat2 <- lapply(cvalor, function(x, y) {
-                    mwstat(x,y)
-                }, ivalor)
+                stat2 <- simplify2array(lapply(cvalor, function(x, y) {
+                                                   mwstat(x,y)
+                                               }, ivalor))
                 # T squared
-                tstat <- unlist(stat1) + unlist(stat2)
+                tstat <- stat1[1,] + stat2[1,]
+                aucsq <- (stat1[2,]-0.5)^2 + (stat2[2,]-0.5)^2
                 # minimum value over all clusters
                 mintstat <- min(tstat)
                 if (mintstat < cval) {
-                    # if minimal value < cval add to cluster with smallest T
-                    imin <- which(tstat == mintstat)
+                    # if minimal value < cval add to cluster with smallest auc
+                    imin <- which.min(aucsq)
                     snpclust[ijj] <- imin
                     ccnlr[[imin]] <- sort(c(ccnlr[[imin]], icnlr))
                     cvalor[[imin]] <- sort(c(cvalor[[imin]], ivalor))
@@ -94,16 +95,16 @@ clustersegs <- function(jointseg, out, min.nhet=25, cval=35) {
                 ijj <- jseg$segs == out$seg[ii[i]]
                 icnlr <- sort(jseg$cnlr[ijj])
                 # log-ratio wilcoxon statistic
-                stat1 <- lapply(ccnlr0, function(x, y) {
-                    mwstat(x,y)
-                }, icnlr)
+                stat1 <- simplify2array(lapply(ccnlr0, function(x, y) {
+                                                   mwstat(x,y)
+                                               }, icnlr))
                 # T squared
-                tstat <- unlist(stat1)
+                tstat <- stat1[1,]
                 # minimum value over all clusters
                 mintstat <- min(tstat)
                 if (mintstat < cval) {
-                    # if minimal value < cval add to cluster with smallest T
-                    imin <- which(tstat == mintstat)
+                    # if minimal value < cval add to cluster with smallest auc
+                    imin <- which.min((stat1[2,]-0.5)^2)
                     snpclust[ijj] <- nclust + imin
                     ccnlr0[[imin]] <- sort(c(ccnlr0[[imin]], icnlr))
                     segclust2[i] <- nclust + imin
@@ -142,8 +143,9 @@ mwstat <- function(x,y) {
                    as.integer(n),
                    as.double(y),
                    as.integer(m),
-                   ustat=double(1))
-   zzz$ustat
+                   ustat=double(1),
+                   auc=double(1))
+   c(zzz$ustat, zzz$auc)
 }
 
 # mergw two sorted vectors to get a new sorted vector (to replace sort(c(x,y)))
