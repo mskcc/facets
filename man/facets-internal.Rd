@@ -14,6 +14,11 @@
 \alias{hg19gcpct}
 \alias{gcpctdb}
 \alias{find.mode}
+\alias{findDiploidLogR}
+\alias{km2class}
+\alias{acnsplit}
+\alias{dlrdev}
+\alias{fitcncf}
 \title{facets functions}
 \description{
   Internal functions of package facets.
@@ -33,6 +38,11 @@ mwstat(x,y)
 mergexy(x,y)
 find.mode(x)
 data(hg19gcpct)
+findDiploidLogR(out, cnlr)
+km2class(cnlr.med, num.mark)
+acnsplit(lr0, lr1, lorsq)
+dlrdev(lr2, lr4, out)
+fitcncf(out, cnlr)
 }
 \details{These are not to be called directly by the user}
 \keyword{internal}

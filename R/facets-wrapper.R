@@ -29,7 +29,8 @@ procSample <- function(x, cval=35, min.nhet=25) {
     out$segclust <- out1$segclust
     out$cnlr.median.clust <- out1$segclustsummary[out$segclust,"cnlr.median"]
     out$mafR.clust <- out1$segclustsummary[out$segclust,"mafR"]
-    list(jointseg=jseg, out=out)
+    out1 <- fitcncf(out, jseg$cnlr)
+    list(jointseg=jseg, out=out1$out, dipLogR=out1$dipLogR, flags=out1$flags)
 }
 
 plotSample <- function(x, clustered=FALSE, chromlevels=c(1:22,"X")) {
@@ -59,6 +60,7 @@ plotSample <- function(x, clustered=FALSE, chromlevels=c(1:22,"X")) {
     # plot the logR data and segment medians
     plot(jseg$cnlr[is.finite(jseg$cnlr)], pch=".", cex=2, col = c("grey","lightblue","azure4","slateblue")[chrcol], ylab="log-ratio", xaxt="n")
     abline(h=median(jseg$cnlr, na.rm=TRUE), col="green2")
+    abline(h=x$dipLogR, col="grey")
     segments(segstart, cnlr.median, segend, cnlr.median, lwd=1.75, col=2)
     if (missing(chromlevels)) { # human genome
         if (length(nn) == 23) { # chromsome X is present
