@@ -18,7 +18,7 @@ findDiploidLogR <- function(out, cnlr) {
     cnlr <- cnlr[is.finite(cnlr)]
     segid <- rep(out$segclust, out$num.mark)
     # re-order data by cnlr.medians
-    segid <- rank(out0$cnlr.median, ties="random")[segid]
+    segid <- rank(out0$cnlr.median, ties.method="random")[segid]
     cnlr <- cnlr[order(segid)]
     segid <- sort(segid)
     # re-order the clusters by cnlr.median
