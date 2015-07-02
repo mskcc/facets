@@ -2,7 +2,7 @@ Package: facets
 Type: Package
 Title: Cellular Fraction and Copy Numbers from Tumor Sequencing
 Version: 0.2.0
-Date: 2015-07-01
+Date: 2015-07-02
 Author: Venkatraman E. Seshan
 Maintainer: Venkatraman E. Seshan <seshanv@mskcc.org>
 Description: Algorithm to implement Fraction and Allelic Copy number
