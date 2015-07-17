@@ -1,8 +1,9 @@
-preProcSample <- function(filename, ndepth=35, het.thresh=0.25, snp.nbhd=250, cval=25, chromlevels=c(1:22,"X")) {
-    pmat <- procSnps(filename, ndepth, het.thresh, snp.nbhd, chromlevels)
+preProcSample <- function(filename, ndepth=35, het.thresh=0.25, snp.nbhd=250, cval=25, chromlevels=c(1:22,"X"), hetscale=TRUE) {
+    pmat <- procSnpsDT(filename, ndepth, het.thresh, snp.nbhd, chromlevels)
     dmat <- counts2logROR(pmat[pmat$rCountT>0,])
-    tmp <- segsnps(dmat, cval)
-    list(pmat=pmat, seg.tree=tmp$seg.tree, jointseg=tmp$jointseg)
+    tmp <- segsnps(dmat, cval, hetscale)
+    out <- list(pmat=pmat)
+    c(out, tmp)
 }
 
 procSample <- function(x, cval=35, min.nhet=25) {
@@ -16,21 +17,21 @@ procSample <- function(x, cval=35, min.nhet=25) {
     jseg <- jseg[is.finite(jseg$cnlr),]
     # loop through chromosomes to get segments
     nchr <- length(x$seg.tree)
+    # number the segs from 1 to the total number
+    nsegs <- 0
     for (i in 1:nchr) {
         seg.widths <- diff(prune.cpt.tree(x$seg.tree[[i]], cval))
-        jseg$segs[jseg$chrom==i] <- rep(1:length(seg.widths), seg.widths)
-    }    
+        jseg$seg[jseg$chrom==i] <- nsegs + rep(1:length(seg.widths), seg.widths)
+        nsegs <- nsegs + length(seg.widths)
+    }
     out <- jointsegsummary(jseg)
-    out1 <- clustersegs(jseg, out, min.nhet, cval)
+    out <- clustersegs(out, jseg, min.nhet)
     # put in the clustered values for snps
-    jseg$segclust <- out1$snpclust
-    # put in the clustered values for snps
-    out$segclust <- rep(NA_real_, nrow(out))
-    out$segclust <- out1$segclust
-    out$cnlr.median.clust <- out1$segclustsummary[out$segclust,"cnlr.median"]
-    out$mafR.clust <- out1$segclustsummary[out$segclust,"mafR"]
-    out1 <- fitcncf(out, jseg$cnlr)
-    list(jointseg=jseg, out=out1$out, dipLogR=out1$dipLogR, flags=out1$flags)
+    jseg$segclust[is.finite(jseg$cnlr)] <- rep(out$segclust, out$num.mark)
+    # find dipLogR and fit cncf
+    oo <- findDiploidLogR(out, jseg$cnlr)
+    out <- fitcncf(out, oo$dipLogR)
+    c(list(jointseg=jseg, out=out), oo[-1])
 }
 
 plotSample <- function(x, clustered=FALSE, chromlevels=c(1:22,"X")) {
@@ -49,7 +50,7 @@ plotSample <- function(x, clustered=FALSE, chromlevels=c(1:22,"X")) {
     }
     mafR <- abs(mafR)
     # chromosome colors
-    chrcol <- 1+rep(out$chr-2*floor(out$chr/2), out$num.mark)
+    chrcol <- 1+rep(out$chrom-2*floor(out$chrom/2), out$num.mark)
     nn <- cumsum(table(jseg$chrom[is.finite(jseg$cnlr)]))
     segbdry <- cumsum(c(0,out$num.mark))
     segstart <- segbdry[-length(segbdry)]
@@ -59,8 +60,8 @@ plotSample <- function(x, clustered=FALSE, chromlevels=c(1:22,"X")) {
     par(mar=c(0.25,3,0.25,1), mgp=c(2, 0.7, 0), oma=c(3,0,1.25,0))
     # plot the logR data and segment medians
     plot(jseg$cnlr[is.finite(jseg$cnlr)], pch=".", cex=2, col = c("grey","lightblue","azure4","slateblue")[chrcol], ylab="log-ratio", xaxt="n")
-    abline(h=median(jseg$cnlr, na.rm=TRUE), col="green2")
-    abline(h=x$dipLogR, col="grey")
+    abline(h=median(jseg$cnlr, na.rm=TRUE), col="green4")
+    abline(h=x$dipLogR, col="magenta4")
     segments(segstart, cnlr.median, segend, cnlr.median, lwd=1.75, col=2)
     if (missing(chromlevels)) { # human genome
         if (length(nn) == 23) { # chromsome X is present

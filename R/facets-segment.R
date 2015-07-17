@@ -1,5 +1,5 @@
 # recursively split the chromosomes using cval and save the tree structure
-fit.cpt.tree <- function(genomdat, edgelim=10, cval=25) {
+fit.cpt.tree <- function(genomdat, edgelim=10, cval=25, hscl=1) {
     # genomdat has 3 columns: logR, logOR and het indicator
     n <- nrow(genomdat)
     seg.end <- c(0,n)
@@ -29,7 +29,7 @@ fit.cpt.tree <- function(genomdat, edgelim=10, cval=25) {
             current.genomdat[,1] <- (rank(current.genomdat[,1]) - (current.n+1)/2)/sqrt((current.n+1)*current.n/12)
             # maf is only for germline heterozygous snps; set to 0 in segsnps
             if (nhet > 0) {
-                current.genomdat[het,2] <- (rank(current.genomdat[het,2]) - (nhet+1)/2)/sqrt((nhet+1)*max(nhet,1)/12)
+                current.genomdat[het,2] <- hscl*(rank(current.genomdat[het,2]) - (nhet+1)/2)/sqrt((nhet+1)*max(nhet,1)/12)
             }
             # cumulative heterozygous counts
             current.genomdat[,3] <- cumsum(current.genomdat[,3])
@@ -101,19 +101,21 @@ prune.cpt.tree <- function(seg.tree, cval=25) {
 }
 
 # segment by looping over the chromosomes
-segsnps <- function(mat, cval=25) {
+segsnps <- function(mat, cval=25, hetscale=FALSE) {
     # keep the original data
     mat0 <- mat
     # keep only rows that have finite values for cnlr
     ii <- is.finite(mat$cnlr)
     # keep only the necessary variables for segmentation
     mat <- mat[ii, c("chrom","cnlr","valor","het")]
+    # scaling factor for het snps
+    hscl <- ifelse(hetscale, max(1,sqrt(0.25*nrow(mat)/sum(mat$het))), 1)
     # set valor=0 for homozygous snps
     mat$valor[mat$het==0] <- 0
     # take absolute value of valor
     mat$valor <- abs(mat$valor)
     # initialize segment indicator
-    mat$segs <- rep(NA_real_, nrow(mat))
+    mat$seg <- rep(NA_real_, nrow(mat))
     # loop over chromosomes
     nchr <- max(mat$chrom) # IMPACT doesn't have X so only 22
     # initialize segmentation tree
@@ -121,16 +123,16 @@ segsnps <- function(mat, cval=25) {
     for(i in 1:nchr) {
         genomdat <- as.matrix(mat[mat$chrom==i, c("cnlr","valor","het")])
         # fit segment tree
-        tmp <- fit.cpt.tree(genomdat, cval=cval)
+        tmp <- fit.cpt.tree(genomdat, cval=cval, hscl=hscl)
         seg.tree[[i]] <- tmp$seg.tree
         # segment indicator
         seg.widths <- diff(tmp$seg.ends)
-        mat$segs[mat[,1]==i] <- rep(1:length(seg.widths), seg.widths)
+        mat$seg[mat[,1]==i] <- rep(1:length(seg.widths), seg.widths)
     }
     attr(seg.tree, "cval") <- cval
     # add segs to original matrix
-    mat0$segs <- rep(NA_real_, nrow(mat0))
-    mat0$segs[ii] <- mat$segs
+    mat0$seg <- rep(NA_real_, nrow(mat0))
+    mat0$seg[ii] <- mat$seg
     # return matrix
-    list(seg.tree=seg.tree, jointseg=mat0)
+    list(seg.tree=seg.tree, jointseg=mat0, hscl=hscl)
 }

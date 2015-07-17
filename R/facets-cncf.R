@@ -1,9 +1,16 @@
-clusteredcncf <- function(out, dipLogR=0) {
-    out1 <- out[,7:9]
-    names(out1)[2:3] <- c("cnlr.median", "mafR")
-    out1 <- out1[!duplicated(out1$segclust), , drop=FALSE]
-    out1 <- clusteredcncf.fit(out1, dipLogR)
+# fitting copy number and cellular fractions (replaces clusteredcncf)
+fitcncf <- function(out, dipLogR=0) {
+    # save the original out
     cncf <- out
+    # get the segclust version of out
+    num.mark <- tapply(out$num.mark, out$segclust, sum)
+    segclust <- as.numeric(names(num.mark))
+    nhet <- tapply(out$nhet, out$segclust, sum)
+    cnlr.median <- tapply(out$cnlr.median.clust, out$segclust, median)
+    mafR <- tapply(out$mafR.clust, out$segclust, median)
+    out0 <- data.frame(segclust, num.mark, nhet, cnlr.median, mafR)
+    # fit the copy numbers and cellular fraction
+    out1 <- fitcncf0(out0, dipLogR)
     ii <- match(cncf$segclust, out1$segclust)
     cncf$cf <- out1$cf[ii]
     cncf$tcn <- out1$tcn[ii]
@@ -11,101 +18,153 @@ clusteredcncf <- function(out, dipLogR=0) {
     cncf
 }
 
-clusteredcncf.fit <- function(out, dipLogR=0) {
-    out$lcn <- out$tcn <- out$cf <- out$ocn <- out$util <- rep(0, nrow(out))
-    # setup functions for optimization
-    utility <- function(cf, tcn, lcn, ocn, maf) {
-        ((tcn-lcn)*cf + (1-cf) - ocn*(1-maf))^2 + (lcn*cf + (1-cf) - ocn*maf)^2
-    }
-    optcf <- function(tcn, lcn, ocn, maf) {
-        ocf <- ifelse (tcn == 2 & lcn == 1,
-                        1, 
-                        (ocn*(tcn-lcn-1) + ocn*maf*(2*lcn-tcn) - (tcn-2))/((tcn-lcn-1)^2 + (lcn-1)^2))
-        # if optimal cf is less than 5% set it to 5%
-        if (ocf < 0) ocf <- 0
-        if (ocf > 1) ocf <- 1
-        c(ocf, utility(ocf, tcn, lcn, ocn, maf))
-    }
+fitcncf0 <- function(out, dipLogR=0) {
+    # initialize vectors
+    out$lcn <- out$tcn <- out$cf <- out$ocn <- rep(NA_real_, nrow(out))
+    out$ocn <- 2^(1 + out$cnlr.median - dipLogR)
+    ocn0 <- out$ocn
+    maf0 <- 1/(1+exp(sqrt(pmax(0,out$mafR))))
     # loop through the segment clusters
     for(seg in 1:nrow(out)) {
-        # observed copy number
-        ocn <- 2^(1 + out$cnlr.median[seg] - dipLogR)
-        out$ocn[seg] <- ocn
-        # estimate copy number ratio from log odds ratio estimate
-        if (is.finite(out$mafR[seg])) {
-            maf <- 1/(1+exp(sqrt(max(0,out$mafR[seg]))))
-            if (ocn > 2.25) {
-                # if ocn is large choose the next integer (greedy)
-                # initialize genotype vectors
+        ocn <- ocn0[seg]
+        maf <- maf0[seg]
+        if (is.finite(maf)) {
+            if (ocn > 2.15) {
                 tcn <- ceiling(ocn)
-                # obtain the optimal cf and corresponding utility
-                maxlcn <- floor(tcn/2)
-                zzz <- sapply(0:maxlcn, function(i) {optcf(tcn, i, ocn, maf)})
-                icf <- which.min(zzz[2,])
-                # if utility for closest tcn is too high bump tcn to tcn+1
-                if (zzz[2, icf] > 0.1) {
-                    # tcn+1
+                uu <- optcfutil(tcn, ocn, maf)
+                # it distance measure is large
+                if (uu[3] > 0.05) {
                     tcn1 <- tcn+1
-                    maxlcn <- floor(tcn1/2)
-                    zzz1 <- sapply(0:maxlcn, function(i) {optcf(tcn1, i, ocn, maf)})
-                    icf1 <- which.min(zzz1[2,])
-                    # if the utility is reduced 
-                    if (zzz1[2, icf1] < zzz[2, icf]) {
-                        zzz <- zzz1
-                        icf <- icf1
+                    uu1 <- optcfutil(tcn1, ocn, maf)
+                    # if distance measure is reduced by at least 20%
+                    if (uu1[3] < 0.8*uu[3]) {
+                        # if distance is still large
+                        if (uu1[3] > 0.025) {
+                            tcn2 <- tcn+2
+                            uu2 <- optcfutil(tcn2, ocn, maf)
+                            if (uu2[3] < 0.8*uu1[3]) {
+                                uu1 <- uu2
+                                tcn1 <- tcn2
+                            }
+                        }
+                        uu <- uu1
                         tcn <- tcn1
                     }
                 }
-                # print(c(zzz1[,icf1],zzz2[,icf2]))
-                out$cf[seg] <- zzz[1,icf]
                 out$tcn[seg] <- tcn
-                out$lcn[seg] <- icf-1
-                out$util[seg] <- zzz[2,icf]
+                out$lcn[seg] <- uu[1]
+                out$cf[seg] <- uu[2]
             } else {
-                if (ocn < 1.9) {
-                    # if ocn is small choose between 0 and 1
-                    tcn <- c(0,1)
-                    zzz <- sapply(1:2, function(i) {optcf(tcn[i], 0, ocn, maf)})
-                    icf <- which.min(zzz[2,])
-                    out$cf[seg] <- zzz[1,icf]
-                    out$tcn[seg] <- tcn[icf]
-                    out$lcn[seg] <- 0
-                    out$util[seg] <- zzz[2,icf]
-                } else {
-                    # if ocn close to 2 choose between 1, 2 & 3
-                    tcn <- c(1,2,2,3,3)
-                    lcn <- c(0,0,1,0,1)
-                    zzz <- sapply(1:5, function(i) {optcf(tcn[i], lcn[i], ocn, maf)})
-                    icf <- which.min(zzz[2,])
-                    out$util[seg] <- zzz[2,icf]
-                    if (zzz[1,icf] < 0.05 | out$mafR[seg] < 0.015) {
-                        # if optimal cellular fraction is < 5% or low allelic 
-                        # imbalance set it as normal diploid
-                        out$cf[seg] <- 1
-                        out$tcn[seg] <- 2
-                        out$lcn[seg] <- 1
+                if (ocn < 1.85) {
+                    # choose between 0 & 1
+                    uu0 <- optcfutil(0, ocn, maf)
+                    uu1 <- optcfutil(1, ocn, maf)
+                    if (uu0[3] < uu1[3]) {
+                        out$tcn[seg] <- 0
+                        out$lcn[seg] <- uu0[1]
+                        out$cf[seg] <- uu0[2]
                     } else {
-                        out$cf[seg] <- zzz[1,icf]
-                        out$tcn[seg] <- tcn[icf]
-                        out$lcn[seg] <- lcn[icf]
+                        out$tcn[seg] <- 1
+                        out$lcn[seg] <- uu1[1]
+                        out$cf[seg] <- uu1[2]
+                    }
+                } else {
+                    # ocn between 1.85 & 2.15; choose between 1+1 & 2+0
+                    uu2 <- optcfutil(2, ocn, maf)
+                    # if optimal cf is > 15% call it 2+0 o.w 1+1
+                    out$tcn[seg] <- 2
+                    if (uu2[2] > 0.15) {
+                        out$lcn[seg] <- uu2[1]
+                        out$cf[seg] <- uu2[2]
+                    } else {
+                        out$lcn[seg] <- 1
+                        out$cf[seg] <- 1
                     }
                 }
             }
-        } else {
-            # mafR is NA so just calculate TCN greedily if ocn <1.75 or >2.25
-            ocn2 <- ocn-2
-            if (abs(ocn2) > 0.25) {
-                ocn2 <- ocn-2
-                out$tcn[seg] <- sign(ocn2)*ceiling(abs(ocn2)) + 2
-                out$cf[seg] <- ocn2/(out$tcn[seg]-2)
-                out$lcn[seg] <- NA
-            } else {
-                out$cf[seg] <- 1
-                out$tcn[seg] <- 2
-                out$lcn[seg] <- NA
-            }
         }
+    }
+    # merge thc cf levels
+    out <- mergecf(out)
+    # now fill in the tcn for clusters with NA for mafR using median cf
+    ii <- which(out$cf < 1)
+    # don't want to call deletions and amplications in low purity samples
+    if (length(ii) > 0) {
+        cfmed <- max(median(rep(out$cf[ii], out$num.mark[ii])), 0.3)
+    } else {
+        cfmed <- 0.3
+    }
+    for(seg in 1:nrow(out)) {
+        if (is.na(maf0[seg])) {
+            ocn <- ocn0[seg]
+            # divide ocn by cfmed and round it
+            tcn <- round((ocn-2)/cfmed) + 2
+            if (tcn < 0) tcn <- 0
+            out$tcn[seg] <- tcn
+            # set the segment cf to be cfmed
+            out$cf[seg] <- ifelse (tcn == 2, 1, cfmed)
+        }
+    }
+    out
+}
 
+# minimizes the distance(1+l*cf - ocn1)^2 + (1+k*cf - ocn2)^2 to get "cf"
+# where ocn1 = ocn*maf, ocn2=ocn*(1-maf), l <= k true copy numbers in tumor
+optcfutil <- function(tcn, ocn, maf) {
+    cn1 <- ocn*maf
+    cn2 <- ocn*(1-maf)
+    maxlcn <- floor(tcn/2)
+    oo <- sapply(0:maxlcn, function(l, tcn, cn1, cn2) {
+                     k <- tcn - l
+                     if (k==1 & l==1) {
+                         cf = 1
+                     } else {
+                         cf = ((l-1)*(cn1-1) + (k-1)*(cn2-1))/((l-1)^2+(k-1)^2)
+                     }
+                     # if the optimal cf outside (0,1) set it at boundary
+                     if (cf < 0) cf <- 0
+                     if (cf > 1) cf <- 1
+                     # calculate utility
+                     util <- (1+(l-1)*cf - cn1)^2 + (1+(k-1)*cf - cn2)^2
+                     c(l,cf,util)
+                 }, tcn, cn1, cn2)
+    oo[,which.min(oo[3,])]
+}
+
+# merging cellular fractions
+mergecf <- function(out) {
+    # clusters with defined cf and less than 1
+    out0 <- out[which(out$cf < 1),]
+    if (nrow(out0) > 0) { 
+        # order out0 by cf
+        out0 <- out0[order(out0$cf),]
+        # prepare the variables needed for deviance
+        maf <- 1/(1+exp(sqrt(pmax(out0$mafR,0))))
+        acn1o <- out0$ocn*maf
+        acn2o <- out0$ocn*(1-maf)
+        acn1t <- out0$lcn - 1
+        acn2t <- out0$tcn-out0$lcn -1
+        cf <- out0$cf
+        nm <- out0$num.mark
+        # merge cf values closest to one another
+        cfclust0 <- cfclust <- 1:nrow(out0)
+        cflevels0 <- cflevels <- cf
+        dev1 <- dev0 <- sum(((1+cf*acn1t - acn1o)^2 + (1+cf*acn2t - acn2o)^2)*nm)
+        while (length(cflevels)>1 & dev1 <= 1.1*dev0) {
+            # save the previous levels
+            cflevels0 <- cflevels
+            cfclust0 <- cfclust
+            # dev1a <- dev1
+            # update
+            j <- which.min(diff(cflevels))
+            cflevels <- cflevels[-j]
+            cfclust[cfclust>j] <- cfclust[cfclust>j] - 1
+            cflevels[j] <- sum((nm*cf)[cfclust==j])/sum(nm[cfclust==j])
+            dev1 <- sum(((1+cflevels[cfclust]*acn1t - acn1o)^2 + (1+cflevels[cfclust]*acn2t - acn2o)^2)*nm)
+        }
+        # replace the existing cf with merged cf
+        ii <- match(out0$segclust, out$segclust)
+        out$cf[ii] <- cflevels0[cfclust0]
     }
     out
 }

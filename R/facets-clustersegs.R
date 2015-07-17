@@ -1,163 +1,92 @@
-clustersegs <- function(jointseg, out, min.nhet=25, cval=35) {
-    # data for further comparisons
-    jseg <- jointseg[is.finite(jointseg$cnlr),c(1:2,11:14)]
-    # create an easily ordered segment indicator
-    jseg$segs <- jseg$segs + 1000*jseg$chrom
-    # segment summary
-    out$seg <- out$seg + 1000*out$chr
-    # initialize cluster indicator 
-    snpclust <- rep(0, nrow(jseg))    # snp level
-    segclust <- rep(0, nrow(out))     # segment level
-    # big segments that have sufficient number of het snps
-    bigsegs <- out$nhet >= min.nhet
-    if (sum(1*bigsegs) == 0) warning(paste("No segment with at least", min.nhet, "hets; try reducing min.nhet"))
-    # order the segments
-    ii <- which(bigsegs)[order(-out$num.mark[bigsegs])]
-    nbseg <- length(ii)
-    # need to be careful if length(ii) is 0 or 1
+clustersegs <- function(out, jointseg, min.nhet=10) {
+    # number of segments
+    nsegs <- nrow(out)
+    # logR with NAs removed
+    cnlr <- jointseg$cnlr[is.finite(jointseg$cnlr)]
+    # logOR and its variance for the het snps (and no NAs from cnlr)
+    lor <- jointseg[is.finite(jointseg$cnlr), c("valor","lorvar","het")]
+    # segid is the segment number re-ordered by cnlr.median
+    segid <- rep(rank(out$cnlr.median, ties.method="random"), out$num.mark)
+    # logR, logOR data re-ordered by re-ordering the segments
+    cnlr <- cnlr[order(segid)]
+    lor <- lor[order(segid),]
+    segid <- sort(segid)
+    # sort the out dataframe
+    out <- out[order(out$cnlr.median),]
+    # observed copy number (ocn) clusters
+    ocnclust <- 1:nsegs
+    ocnlevels <- out$cnlr.median
+    while (min(diff(ocnlevels)) < 0.04 & length(ocnlevels)>1) {
+        j <- which.min(diff(ocnlevels))
+        ocnlevels <- ocnlevels[-j]
+        ocnclust[ocnclust>j] <- ocnclust[ocnclust>j] - 1
+        segid[segid > j] <- segid[segid > j] - 1
+        ocnlevels[j] <- median(cnlr[segid==j])
+    }
+    out$segclust <- ocnclust
+    out$cnlr.median.clust <- ocnlevels[ocnclust]
+    # create the logOR data needed for merging by maf
+    segid <- rep(1:nsegs, out$num.mark)[lor$het==1]
+    lor <- lor[lor$het==1, c("valor","lorvar")]
+    # loop through the ocnclust to cluster based on mafR
+    mafR.clust <- mafclust <- rep(NA, nsegs)
+    # function to estimate maf from clustered data
+    for(i in unique(ocnclust)) {
+        ii <- ocnclust==i & out$nhet >= min.nhet
+        segs <- which(ii)
+        # if more than one segment start merging from largest
+        if (length(segs) > 1) {
+            # order the segs by nhet
+            segs <- segs[order(out$nhet[ii], decreasing=TRUE)]
+            # list to hold the data for clusters
+            lorclust <- list()
+            # first seg starts a cluster
+            mafclust[segs[1]] <- 1
+            lorclust[[1]] <- lor[segid==segs[1],]
+            # loop through other segs
+            nclust <- 1
+            for (j in 2:length(segs)) {
+                lorj <- lor[segid==segs[j],]
+                # Mann-Whitney p-value comparing wrt existing clusters
+                mwp <- unlist(lapply(lorclust, function(x, y) {
+                                         wilcox.test(abs(x$valor), abs(y$valor), exact=FALSE)$p.value
+                                     }, lorj))
+                # if p-value
+                if (max(mwp) > 0.001) {
+                    j0 <- which.max(mwp)
+                    mafclust[segs[j]] <- j0
+                    lorclust[[j0]] <- rbind(lorclust[[j0]], lorj)
+                } else {
+                    nclust <- nclust+1
+                    mafclust[segs[j]] <- nclust
+                    lorclust[[nclust]] <- lorj
+                }
+            }
+            cmaf <- unlist(lapply(lorclust, function(x) {sum(((x$valor)^2 - x$lorvar)/x$lorvar)/sum(1/x$lorvar)}))
+            mafR.clust[ii] <- cmaf[mafclust[ii]]
+        } else {
+            mafclust[ii] <- 1
+            mafR.clust[ii] <- out$mafR[ii]
+        }
+    }
+    # redo the segclust to include mafclust
     nclust <- 0
-    if (nbseg > 0) {
-        segclust1 <- rep(0, nbseg)   # segments with sufficient het count
-        # cluster them using both cnlr and valor
-        # begin with the biggest segment as a cluster of its own
-        nclust <- nclust + 1
-        ijj <- jseg$segs == out$seg[ii[1]]
-        snpclust[ijj] <- 1
-        segclust1[1] <- 1
-        # collect data from segments into cluster specific lists
-        # copy number log-ratio (pre-sorted)
-        ccnlr <- list()
-        ccnlr[[1]] <- sort(jseg$cnlr[ijj])
-        # log variant allele odds-ratio (pre-sorted)
-        finitevalor <- is.finite(jseg$valor)
-        cvalor <- list()
-        cvalor[[1]] <- sort(abs(jseg$valor[ijj & finitevalor]))
-        # now loop through other segments
-        if (nbseg > 1) {
-            for (i in 2:nbseg) {
-                # segment data (pre-sorted)
-                ijj <- jseg$segs == out$seg[ii[i]]
-                icnlr <- sort(jseg$cnlr[ijj])
-                ivalor <- sort(abs(jseg$valor[ijj & finitevalor]))
-                # log-ratio wilcoxon statistic
-                stat1 <- simplify2array(lapply(ccnlr, function(x, y) {
-                                                   mwstat(x,y)
-                                               }, icnlr))
-                # log odds ratio wilcoxon statistic
-                stat2 <- simplify2array(lapply(cvalor, function(x, y) {
-                                                   mwstat(x,y)
-                                               }, ivalor))
-                # T squared
-                tstat <- stat1[1,] + stat2[1,]
-                aucsq <- (stat1[2,]-0.5)^2 + (stat2[2,]-0.5)^2
-                # minimum value over all clusters
-                mintstat <- min(tstat)
-                if (mintstat < cval) {
-                    # if minimal value < cval add to cluster with smallest auc
-                    imin <- which.min(aucsq)
-                    snpclust[ijj] <- imin
-                    ccnlr[[imin]] <- sort(c(ccnlr[[imin]], icnlr))
-                    cvalor[[imin]] <- sort(c(cvalor[[imin]], ivalor))
-                    segclust1[i] <- imin
-                } else {
-                    # else create a new cluster
-                    nclust <- nclust + 1
-                    snpclust[ijj] <- nclust
-                    ccnlr[[nclust]] <- icnlr
-                    cvalor[[nclust]] <- ivalor
-                    segclust1[i] <- nclust
-                }
-            }
+    segclust <- ocnclust
+    for (i in unique(ocnclust)) {
+        ii <- ocnclust==i
+        segclust[ii] <- nclust + mafclust[ii]
+        # number of clusters so far only if at least one non-NA mafclust
+        if (sum(is.finite(mafclust[ii])) > 0) {
+            nclust <- nclust + max(mafclust[ii], na.rm=TRUE)
         }
-        # put the big segment indicator in it
-        segclust[ii] <- segclust1
-    }
-    # now cluster the other segments using cnlr alone
-    ii <- which(!bigsegs)[order(-out$num.mark[!bigsegs])]
-    # need to be careful if length(ii) is 0 or 1
-    noseg <- length(ii)
-    nclust1 <- 0
-    if (noseg > 0) {
-        segclust2 <- rep(0, noseg)   # segments with sufficient het count
-        # begin with the biggest segment as a cluster of its own
-        nclust1 <- nclust1 + 1
-        ijj <- jseg$segs == out$seg[ii[1]]
-        snpclust[ijj] <- nclust + 1
-        segclust2[1] <- nclust + 1
-        # collect data from segments into cluster specific lists
-        # copy number log-ratio
-        ccnlr0 <- list()
-        ccnlr0[[1]] <- sort(jseg$cnlr[ijj])
-        # now loop through other segments
-        if (noseg > 1) {
-            for (i in 2:noseg) {
-                # segment data
-                ijj <- jseg$segs == out$seg[ii[i]]
-                icnlr <- sort(jseg$cnlr[ijj])
-                # log-ratio wilcoxon statistic
-                stat1 <- simplify2array(lapply(ccnlr0, function(x, y) {
-                                                   mwstat(x,y)
-                                               }, icnlr))
-                # T squared
-                tstat <- stat1[1,]
-                # minimum value over all clusters
-                mintstat <- min(tstat)
-                if (mintstat < cval) {
-                    # if minimal value < cval add to cluster with smallest auc
-                    imin <- which.min((stat1[2,]-0.5)^2)
-                    snpclust[ijj] <- nclust + imin
-                    ccnlr0[[imin]] <- sort(c(ccnlr0[[imin]], icnlr))
-                    segclust2[i] <- nclust + imin
-                } else {
-                    # else create a new cluster
-                    nclust1 <- nclust1 + 1
-                    snpclust[ijj] <- nclust + nclust1
-                    ccnlr0[[nclust1]] <- icnlr
-                    segclust2[i] <- nclust + nclust1
-                }
-            }
+        # change the NA into new cluster
+        if (sum(is.na(mafclust[ii])) > 0) {
+            nclust <- nclust + 1
+            segclust[ii][is.na(mafclust[ii])] <- nclust
         }
-        # put the big segment indicator in it
-        segclust[ii] <- segclust2
     }
-    # summarize cluster specific logR and logOR
-    num.mark <- tapply(out$num.mark, segclust, sum)
-    nhet <- tapply(out$nhet, segclust, sum)
-    cnlr.median <- tapply(jseg$cnlr, snpclust, median)
-    mafR <- tapply(1:nrow(jseg), snpclust, function(ii, valor, lorvar) {
-        sum(((valor[ii])^2 - lorvar[ii])/lorvar[ii], na.rm=T)/sum(1/lorvar[ii], na.rm=T)
-    }, jseg$valor, jseg$lorvar)
-    # mafR only makes sense for clusters made from segs with sufficient hets
-    if (nclust1 > 0) mafR[(nclust+1):(nclust+nclust1)] <- NA
-    segclustsummary <- cbind(num.mark, nhet, cnlr.median, mafR)
-    # return snpclust, segclust and segclustsummary
-    list(snpclust=snpclust, segclust=segclust, segclustsummary=segclustsummary)
-}
-
-# Mann-Whitney statistic when x and y are already sorted
-mwstat <- function(x,y) {
-   n <- length(x)
-   m <- length(y)
-   zzz <- .Fortran("mwstat",
-                   as.double(x),
-                   as.integer(n),
-                   as.double(y),
-                   as.integer(m),
-                   ustat=double(1),
-                   auc=double(1))
-   c(zzz$ustat, zzz$auc)
-}
-
-# mergw two sorted vectors to get a new sorted vector (to replace sort(c(x,y)))
-mergexy <- function(x,y) {
-   n <- length(x)
-   m <- length(y)
-   zzz <- .Fortran("mergexy",
-                   as.double(x),
-                   as.integer(n),
-                   as.double(y),
-                   as.integer(m),
-                   xy=double(m+n),
-                   as.integer(m+n))
-   zzz$xy
+    out$segclust <- segclust
+    out$mafR.clust <- mafR.clust
+    # order out back to the original genomic order
+    out[order(out$seg),]
 }

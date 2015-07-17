@@ -6,7 +6,7 @@
 }
 \usage{
   preProcSample(filename, ndepth=35, het.thresh=0.25, snp.nbhd=250,
-                cval=25, chromlevels=c(1:22,"X"))
+                cval=25, chromlevels=c(1:22,"X"), hetscale=TRUE)
 }
 \arguments{
   \item{filename}{input matrix of read depths and variant allele frequencies}
@@ -16,6 +16,10 @@
   \item{cval}{critical value for segmentation}
   \item{chromlevels}{names of chromosomes. Chromosomes will be ordered
     in the order given. Useful for non-human genome.}
+  \item{hetscale}{logical variable to indicate if logOR should get more
+    weight in the test statistics for segmentation and clustering. Usually
+    only 10\% of snps are hets and hetscale gives the logOR contribution
+    to T-square as 0.25/proportion of hets.}
 }
 \value{
   A list consisting of three elements:
@@ -27,4 +31,5 @@
     is the whole chromosome and its parent row is by definition 0.}
   \item{jointseg}{The data that were segmented. Only the loci that were
     sampled within a snp.nbhd are present. segment results given.}
+  \item{hscl}{scaling factor for logOR data.}
 }

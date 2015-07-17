@@ -8,7 +8,7 @@ findDiploidLogR <- function(out, cnlr) {
     flags <- NULL
     # summarize the segment specific info into clusters
     num.mark <- tapply(out$num.mark, out$segclust, sum)
-    segclust <- names(num.mark)
+    segclust <- as.numeric(names(num.mark))
     nhet <- tapply(out$nhet, out$segclust, sum)
     cnlr.median <- tapply(out$cnlr.median.clust, out$segclust, median)
     mafR <- tapply(out$mafR.clust, out$segclust, median)
@@ -27,31 +27,34 @@ findDiploidLogR <- function(out, cnlr) {
     mafR <- out0$mafR
     cnlr.median <- out0$cnlr.median
     num.mark <- out0$num.mark
+    nsnps <- sum(num.mark)
     segclust <- out0$segclust
     nhet <- out0$nhet
-    # create new clustered medians by joining adjacent cnlr.median levels
-    k <- nrow(out0)
-    ocnclust <- 1:k
-    ocnlevels <- out0$cnlr.median
-    while (min(diff(ocnlevels)) < 0.05 & length(ocnlevels)>1) {
-        j <- which.min(diff(ocnlevels))
-        ocnlevels <- ocnlevels[-j]
-        ocnclust[ocnclust>j] <- ocnclust[ocnclust>j] - 1
-        segid[segid > j] <- segid[segid > j] - 1
-        ocnlevels[j] <- median(cnlr[segid==j])
-    }
-    # add to out0 data frame
-    out0$ocnclust <- ocnclust
-    out0$ocnlevels <- ocnlevels[ocnclust]
+    # 
+    ocnlevels <- unique(out0$cnlr.median)
     # revised ocn
     #
-    # mafR < 0.02 allows for single copy change at no more than 15.2%
+    # mafR < 0.025 allows for single copy change at no more than 17.13%
     # check if there are balanced clusters
-    bsegs <- which(out0$mafR < 0.02)
-    # if none exists use the cluster with smallest mafR
-    if(length(bsegs) == 0) {
-        bsegs <- which.min(mafR)
+    bsegs <- which(out0$mafR < 0.025)
+    # if none exists of if balanced segs span less than 10% of genome
+    # use clusters with smallest mafR
+    if (sum(num.mark[bsegs])/nsnps < 0.1) {
+        # set flag
         flags <- "mafR not sufficiently small"
+        # get bsegs with mafR < 0.05; single copy change at 25%
+        bsegs <- which(out0$mafR < 0.05)
+        # if still not 10% add more segments to get to 10%
+        if (sum(num.mark[bsegs])/nsnps < 0.1) {
+            # mafR threshold needed to get just above 10% of genome
+            umafR <- unique(sort(mafR))
+            gprop <- sapply(umafR, function(mafR0, mafR) {
+                                sum(num.mark[which(mafR <= mafR0)])
+                            }, out0$mafR)/nsnps
+            mafR0 <- umafR[which(gprop > 0.1)[1]]
+            # get the clusters
+            bsegs <- which(out0$mafR <= mafR0)
+        }
     }
     #
     # do the cnrl.median of balanced segs suggest two possible locations?
@@ -59,20 +62,30 @@ findDiploidLogR <- function(out, cnlr) {
         # find the low and high values by clustering them
         cm2cls <- km2class(cnlr.median[bsegs], num.mark[bsegs])
         # if the centers are separated by < 0.1375 only one solution
-        # 0.1375 = log2(2.2) - log2(2); 2.2 implies CN of 4 at 10% cf
-        if (diff(cm2cls$centers) < 0.1375) {
+        # 0.2016 = log2(2.3) - log2(2); 2.3 implies CN of 4 at 15% cf
+        if (diff(cm2cls$centers) < 0.2) {
             dipLogR <- median(rep(cnlr.median[bsegs], num.mark[bsegs]))
+            nbal <- sum(cm2cls$nbal)
         } else {
             # check if the lower value represent 1+1 or 2+2?
             dipLogR <- cm2cls$centers
+            nbal <- cm2cls$nbal
             # if the lower value represents small fraction of data can be 0+0
-            if (sum(num.mark[bsegs][cm2cls$cluster==1])/sum(num.mark) < 0.01) {
+            if (nbal[1]/nsnps < 0.01) {
                 dipLogR <- cm2cls$centers[2]
+                nbal <- cm2cls$nbal[2]
             }
         }
     } else {
         dipLogR <- cnlr.median[bsegs]
+        nbal <- num.mark[bsegs]
     }
+    names(dipLogR) <- NULL
+    names(nbal) <- NULL
+    # flag if dipLogR has two values separated by < log2(1.25) (CN=4 at 25%)
+    if (length(dipLogR) == 2)
+        if (diff(dipLogR) < log2(1.25)) 
+            flags <- c(flags, "possibly subclonal 2+2 states present")
     # cat("dipLogR =", dipLogR, "\n")
     # print(out0)
     # first remove the balanced segs
@@ -81,11 +94,10 @@ findDiploidLogR <- function(out, cnlr) {
     # since 2+0 will have same true cnlr as 1+1 check only clear losses
     # clear losses defined as ocn=1.85 (loss at 15% cf); log2(1.85/2)=-0.1125
     lsegs <- which(out1$cnlr.median <= dipLogR[1] - 0.1125 & is.finite(out1$mafR))
-    not1plus1 <- FALSE
-    if (length(lsegs) == 0) {
-        # identifiability issues if none exists; call dipLogR[1] as 1+1
-        dipLogR <- dipLogR[1]
-    } else {
+    not1plus1 <- FALSE # indicator whether dipLogR[1] is not 1+1 state
+    wgd.likely <- NULL # placeholder variable for ambiguos wgd call
+    # identifiability issues when lsegs empty; call dipLogR[1] as 1+1
+    if (length(lsegs) > 0) {
         # check if dipLogR[1] is 1+1 or 2+2
         out1 <- out1[lsegs,]
         # assume dipLogR[1] is clonal 2+2 get acn consistent with cnlr, mafR
@@ -96,19 +108,25 @@ findDiploidLogR <- function(out, cnlr) {
                          }, dipLogR[1], out1))
         # print(out2)
         out1$acn <- apply(out2[,2*(1:3), drop=FALSE], 1, which.min)
-        # all segments 2+0 can be because of dipLogR[1] being 1+1
-        ii <- which(out1$acn != 2)
-        # if the clusters affected account for more than 2% of data
-        if (sum(out1$num.mark[ii])/sum(num.mark) > 0.02) {
-            # dipLogR[1] is not 1+1
-            not1plus1 <- TRUE
-        } else {
+        # proportion of genome that fits 1+0, 2+0 & 3+0
+        acn1prop <- sum(out1$num.mark[out1$acn == 1])/nsnps
+        acn2prop <- sum(out1$num.mark[out1$acn == 2])/nsnps
+        acn3prop <- sum(out1$num.mark[out1$acn == 3])/nsnps
+        # mix of 2+0 and 1+0 from 1+1 (on same segs) can mimic 3+0 from 2+2
+        # that is, it looks like a loss but has a large mafR
+        # so allow small % if 1+0 and a slightly bigger % of 3+0
+        if (acn1prop < 0.02 & acn3prop < 0.05) {
+            # if acn3prop > 0 flag it
+            if (acn3prop > 0) 
+                flags <- c(flags, paste("likely mixture of 1+0 & 2+0 in segclust:", paste(out1$segclust[out1$acn==3], collapse=", ")))
+            # most of the losses are either 2+0 or 2+1
             # 2+2 --> {2+1, 2+0} indistinguishable from 1+1 --> 1+0
             # check that it's not 2+2 with 2+1 and 2+0 states only
             # ***** can only be done if more than one cluster exists *****
             # cf2 is cellular fraction of 2+0 segment (delta-logR from 2+2)
             # cf3 is cellular fraction of 2+1 calculated as if its is 2+0
             # then cf3 = cf2/(2+cf2)
+            # need 2 or more clusters with 2+0 call; otherwise it is 1+1
             if (sum(out1$acn==2) > 1) {
                 # get optimal cellular fraction 
                 rho <- seq(0.01, 0.99, by=0.01)
@@ -121,63 +139,140 @@ findDiploidLogR <- function(out, cnlr) {
                 cf0 <- rho[which.min(dev)]
                 # are both cf0 and cf0/(2+cf0) represented among segments
                 acn <- sapply(cf2, function(x, cf0) {
-                                  which.min((c(x,x)-c(cf0, cf0/(1+cf0)))^2)
+                                  which.min((c(x,x)-c(cf0, cf0/(2+cf0)))^2)
                               }, cf0)
                 #cat("acn =", acn, "\n")
                 #cat("cf2 =", cf2, "\n")
                 # are the two levels represented in sufficient proportions
-                if (min(sum(nm[acn==1]), sum(nm[acn==2]))/sum(nm) > 0.25) {
-                    not1plus1 <- TRUE
-                    # if the discrepancy from cf large flag it
-                    if (max(abs(cf2-c(cf0, cf0/(1+cf0))[acn])) > 0.1) {
-                        flags <- c(flags, "could be polyclonal 1 copy loss")
+                nm2 <- sum(nm[acn==1]) # this is the 2+0 fit
+                nm3 <- sum(nm[acn==2]) # this is the 2+1 fit
+                if (min(nm3, nm2)/(nm3+nm2) > 0.25) {
+                    # if the discrepancy from cf large call it polyclonal
+                    if (max(abs(cf2-c(cf0, cf0/(2+cf0))[acn])) > 0.05) {
+                        flags <- c(flags, "polyclonal 1 copy loss fits better")
+                    } else {
+                        # polyclonal 1 copy loss not obvious & wgd ambiguity
+                        # so calculate alternate dipLogR and present both
+                        not1plus1 <- TRUE
+                        flags <- c(flags, "alternate dipLogR is possible")
+                        # acn2prop >1/3 and 2+1 as likely as 2+0 call it WGD
+                        if (acn2prop > 1/3 & nm3 > nm2) {
+                            wgd.likely <- TRUE
+                        } else {
+                            wgd.likely <- FALSE
+                        }
                     }
                 }
             }
+        } else {
+            not1plus1 <- TRUE
         }
-        #print(out1)
+        if (not1plus1 & acn1prop+acn3prop > 0) {
+            flags <- c(flags, paste("not consistent for 1 copy loss from diploid in segclust:", paste(out1$segclust[out1$acn!=2], collapse=", ")))
+        }
     }
-    # if dipLogR[1] determined to be not 1+1 estimate CN=2 level
+    # if dipLogR[1] is possibly not 1+1 estimate CN=2 level
     if (not1plus1) {
         # find deviance for each ocnlevel
         out1 <- out0[out0$cnlr.median <= max(dipLogR) & is.finite(out0$mafR),]
         # ocn levels cannot be any lower than lr4-1
         ocnlevels0 <- ocnlevels[ocnlevels > dipLogR[1]-1 & ocnlevels < dipLogR[1]]
         dev1 <- sapply(ocnlevels0, dlrdev, dipLogR[1], out1)
-        colr <- rep(1, length(dev1))
+        #colr <- rep(1, length(dev1))
         if (length(dipLogR) == 2) {
-            ocnlevels1 <- ocnlevels[ocnlevels > dipLogR[2]-1 & ocnlevels < dipLogR[2]]
-            dev2 <- sapply(ocnlevels1, dlrdev, dipLogR[2], out1)
-            ocnlevels0 <- c(ocnlevels0, ocnlevels1)
-            dev1 <- c(dev1, dev2)
-            colr <- c(colr, rep(2, length(dev2)))
+            # if dipLogR[1] has >2 (1+1 & 2+0) segclust at >3% don't do this
+            if (sum(out0$num.mark[out0$cnlr.median==dipLogR[1]]/nsnps > 0.03) > 2) {
+                flags <- c(flags, "multiple mafR levels at bal allele level 1")
+            } else {
+                ocnlevels1 <- ocnlevels[ocnlevels > dipLogR[2]-1 & ocnlevels < dipLogR[2]]
+                dev2 <- sapply(ocnlevels1, dlrdev, dipLogR[2], out1)
+                ocnlevels0 <- c(ocnlevels0, ocnlevels1)
+                dev1 <- c(dev1, dev2)
+                #colr <- c(colr, rep(2, length(dev2)))
+            }
         }
         #plot(ocnlevels0, dev1, pch=16, col=colr)
         #print(dev1)
         cn2logR <- ocnlevels0[which.min(dev1)]
-        # return the estimate 1+1 dipLogR
+        # if wgd.likely is non-null add dipLogR[1]
+        if (!is.null(wgd.likely)) {
+            # if wgd.likely set dipLogR[1] as altDipLogR
+            altDipLogR <- dipLogR[1]
+            # o/w change altDipLogR to cn2logR to dipLogR[1] & 
+            if (!wgd.likely) {
+                altDipLogR <- cn2logR
+                cn2logR <- dipLogR[1]
+            }
+            names(altDipLogR) <- NULL # remove names it may have acquired
+        }
     } else {
         cn2logR <- dipLogR[1]
     }
-    names(cn2logR) <- NULL # remove names it may have acquired
+    names(cn2logR) <- NULL    # remove names it may have acquired
+    # 2+2 in more than half the genome seems a stretch
+    if (any(nbal/nsnps > 0.5)) {
+        i <- which(nbal/nsnps > 0.5)
+        # if chosen dipLogR is below that level
+        if (cn2logR < dipLogR[i] - 0.05) {
+            flags <- c(flags, ">1/2 genome balanced at chosen dipLogR")
+            if (exists("altDipLogR")) {
+                altDipLogR <- c(altDipLogR, cn2logR)
+            } else {
+                altDipLogR <- cn2logR
+                flags <- c(flags, "alternate dipLogR is possible")
+            }
+            cn2logR <- dipLogR[i]
+        }
+    }
+    # alternate check if "mafR not sufficiently small"
+    if ("mafR not sufficiently small" %in% flags) {
+        pbal <- sapply(dipLogR, function(x, y, n) {
+                           sum(abs(y-x) < 0.1375)/n
+                       }, rep(cnlr.median, num.mark), nsnps)
+        i <- which(pbal > 2/3)
+        if (length(i) > 0) {
+            if (cn2logR < dipLogR[i] - 0.05) {
+                flags <- c(flags, ">2/3 genome balanced at chosen dipLogR")
+                if (exists("altDipLogR")) {
+                    altDipLogR <- c(altDipLogR, cn2logR)
+                } else {
+                    altDipLogR <- cn2logR
+                    flags <- c(flags, "alternate dipLogR is possible")
+                }
+            }
+            cn2logR <- dipLogR[i]
+        }
+    }
+    
     out0 <- out0[order(out0$segclust),] # reorder by segclust
-    list(out0=out0, dipLogR=cn2logR, flags=flags)
+    if (is.null(wgd.likely)) {
+        list(out0=out0, dipLogR=cn2logR, alBalLogR=cbind(dipLogR,nbal/nsnps), flags=flags)
+    } else {
+        list(out0=out0, dipLogR=cn2logR, altDipLogR=altDipLogR, alBalLogR=cbind(dipLogR,nbal/nsnps), flags=flags)
+    }
 }
 
 # split the segclust medians into two groups high and low
 km2class <- function(cnlr.med, num.mark) {
     n <- length(cnlr.med)
     ii <- order(cnlr.med)
-    csx <- cumsum((cnlr.med*num.mark)[ii])
-    csn <- cumsum(num.mark[ii])
-    jj <- which.max(csx[-n]^2/csn[-n] + (csx[n]-csx[-n])^2/(csn[n]-csn[-n]))
+    csx <- rep(cnlr.med[ii], num.mark[ii])
+    iseg <- rep(1:n, num.mark[ii])
+    gg <- rep(1:2, c(1,n-1))[iseg]
+    l1norm <- sapply(1:(n-1), function(i, n, csx, iseg) {
+                         gg <- rep(1:2, c(i,n-i))[iseg]
+                         med2 <- tapply(csx, gg, median)
+                         sum(abs(csx - med2[gg]))
+                     }, n, csx, iseg)
+    j0 <- which.min(l1norm)
+    med2 <- tapply(csx, rep(1:2, c(j0,n-j0))[iseg], median)
     out <- list()
-    out$centers <- c(csx[jj]/csn[jj], (csx[n]-csx[jj])/(csn[n]-csn[jj]))
+    out$centers <- med2
     out$cluster <- rep(2,n)
-    out$cluster[ii][1:jj] <- 1
+    out$cluster[ii][1:j0] <- 1
+    out$nbal <- tapply(num.mark, out$cluster, sum)
     out
 }
-
 
 # redo cf using log-logOR
 acnsplit <- function(lr0, lr1, lorsq) {
@@ -192,6 +287,8 @@ acnsplit <- function(lr0, lr1, lorsq) {
     i <- which.min(util1.0); optrho[,1] <- c(rho[i], util1.0[i])
     i <- which.min(util2.0); optrho[,2] <- c(rho[i], util2.0[i])
     i <- which.min(util3.0); optrho[,3] <- c(rho[i], util3.0[i])
+    # if optrho is low weigh the utilities in favor of 2
+    if (optrho[1,1] < 0.25) optrho[2,] <- optrho[2,]*(1+c(50,0,50)*(0.25-optrho[1,1]))
     rownames(optrho) <- c("cf","util")
     colnames(optrho) <- c("acn1.0","acn2.0","acn3.0")
     optrho
@@ -225,16 +322,4 @@ dlrdev <- function(lr2, lr4, out) {
                dev
            })
     sum(dev*out$num.mark)
-}
-
-# wrapper for using findDiploidLogR and then clusteredcncf.fit
-fitcncf <- function(out, cnlr) {
-    oo <- findDiploidLogR(out, cnlr)
-    out1 <- clusteredcncf.fit(oo$out0, oo$dipLogR)
-    cncf <- out
-    ii <- match(cncf$segclust, out1$segclust)
-    cncf$cf <- out1$cf[ii]
-    cncf$tcn <- out1$tcn[ii]
-    cncf$lcn <- out1$lcn[ii]
-    list(out=cncf, dipLogR=oo$dipLogR, flags=oo$flags)
 }

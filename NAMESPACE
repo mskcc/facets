@@ -1,2 +1,3 @@
 useDynLib(facets)
+importFrom(data.table, fread)
 exportPattern("^[[:alpha:]]+")

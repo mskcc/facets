@@ -33,6 +33,39 @@ procSnps <- function(filename, ndepth=35, het.thresh=0.25, snp.nbhd=250, chromle
     as.data.frame(out)
 }
 
+# procSnps code above redone to use fread in data.table
+procSnpsDT <- function(filename, ndepth=35, het.thresh=0.25, snp.nbhd=250, chromlevels=c(1:22,"X")) {
+    # read the SNP matrix
+    xx <- fread(paste("gunzip -c", filename), header=T, sep="\t")
+    # remove chr if present in Chrom add it chromlevels
+    if (xx$Chrom[1] == "chr1") chromlevels <- paste("chr", chromlevels, sep="")
+    # keep only chromsomes 1-22, X
+    chr.keep <- xx$Chrom %in% chromlevels
+    # keep only snps with normal read depth between ndepth and 1000
+    depthN.keep <- (xx$NOR.DP >= ndepth) & (xx$NOR.DP < 1000)
+    # reduce the data frame to these snps
+    xx <- xx[chr.keep & depthN.keep,]
+    # ref allele column
+    RefID <- match(xx$Ref, c("A","C","G","T"))
+    ii <- 1:nrow(xx)
+    # output data frame
+    out <- list()
+    out$chrom <- xx$Chrom
+    out$maploc <- xx$Pos
+    out$rCountT <- xx$TUM.DP
+    out$rCountN <- xx$NOR.DP    
+    out$vafT <- 1 - (as.matrix(xx[,.(TUM.Ap,TUM.Cp,TUM.Gp,TUM.Tp)])[cbind(ii,RefID)] + as.matrix(xx[,.(TUM.An,TUM.Cn,TUM.Gn,TUM.Tn)])[cbind(ii,RefID)])/out$rCountT
+    out$vafN <- 1 - (as.matrix(xx[,.(NOR.Ap,NOR.Cp,NOR.Gp,NOR.Tp)])[cbind(ii,RefID)] + as.matrix(xx[,.(NOR.An,NOR.Cn,NOR.Gn,NOR.Tn)])[cbind(ii,RefID)])/out$rCountN
+    # make chromosome ordered and numeric
+    out$chrom <- as.numeric(ordered(out$chrom, levels=chromlevels))
+    # call a snp heterozygous if min(vafN, 1-mafN) > het.thresh
+    out$het <- 1*(pmin(out$vafN, 1-out$vafN) > het.thresh)
+    # scan maploc for snps that are close to one another (within snp.nbhd bases)
+    # heep all the hets (should change if too close) and only one from a nbhd
+    out$keep <- scanSnp(out$maploc, out$het, snp.nbhd)
+    as.data.frame(out)
+}
+
 scanSnp <- function(maploc, het, nbhd) {
     n <- length(maploc)
     zzz <- .Fortran("scansnp",

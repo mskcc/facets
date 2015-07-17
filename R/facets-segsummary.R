@@ -25,30 +25,24 @@ mafmle <- function(fcount, vaf) {
 # segment summary
 jointsegsummary <- function(jointseg) {
     # remove snps with NA in segs (due to NA in cnlr)
-    jointseg <- jointseg[is.finite(jointseg$segs),]
+    jointseg <- jointseg[is.finite(jointseg$seg),]
     # initialize output table
-    out <- as.data.frame(matrix(0, length(table(paste(jointseg$chrom, jointseg$segs))), 6))
-    names(out) <- c("chr","seg","num.mark","nhet","cnlr.median","mafR")
-    l <- 0
-    for(chr in unique(jointseg$chrom)) {
-        zz <- jointseg[jointseg$chrom==chr, c("maploc","rCountT","vafT","rCountN","vafN","segs","cnlr","het","valor","lorvar")]
+    nsegs <- max(jointseg$seg)
+    out <- as.data.frame(matrix(0, nsegs, 6))
+    names(out) <- c("chrom","seg","num.mark","nhet","cnlr.median","mafR")
+    # loop over the segments
+    for(seg in 1:nsegs) {
+        zz <- jointseg[jointseg$seg==seg, c("chrom","cnlr","het","valor","lorvar")]
         zz1 <- zz[zz$het==1,]
-        nseg <- max(zz$segs)
-        for(seg in 1:nseg) {
-            l <- l+1
-            # segment indicator
-            iseg <- zz$segs==seg
-            iseg1 <- zz1$segs==seg
-            # output
-            out[l,1] <- chr
-            out[l,2] <- seg
-            out[l,3] <- sum(1*iseg)
-            out[l,4] <- sum(zz$het[iseg])
-            out[l,5] <- median(zz$cnlr[iseg])
-            if (out[l,4] > 0) {
-                # weighted average of squared log-odds ratio minus variance
-                out[l,6] <- sum(((zz1$valor[iseg1])^2 - zz1$lorvar[iseg1])/zz1$lorvar[iseg1])/sum(1/zz1$lorvar[iseg1])
-            }
+        # output
+        out[seg,1] <- zz$chrom[1]
+        out[seg,2] <- seg
+        out[seg,3] <- nrow(zz)
+        out[seg,4] <- nrow(zz1)
+        out[seg,5] <- median(zz$cnlr)
+        if (out[seg,4] > 0) {
+            # weighted average of squared log-odds ratio minus variance
+            out[seg,6] <- sum(((zz1$valor)^2 - zz1$lorvar)/zz1$lorvar)/sum(1/zz1$lorvar)
         }
     }
     out

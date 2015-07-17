@@ -6,10 +6,9 @@
   fitted cellular fraction and integer copy numbers.
 } 
 \usage{
-  plotSampleCNCF(jointseg, out, fit)
+  plotSampleCNCF(x, fit)
 }
 \arguments{
-  \item{jointseg}{jointseg from the output of procSample}
-  \item{out}{out from the output of procSample}
+  \item{x}{output of procSample with elements jointseg and out}
   \item{fit}{output of emcncf}
 }
