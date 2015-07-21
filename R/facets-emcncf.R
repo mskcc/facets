@@ -315,7 +315,7 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
                rho=find.mode(nona)$rho
             }else{
               loh=rhov.long[major[which.geno.long]%in%c(1,2) & minor[which.geno.long]==0 & seglen>10]
-              if(length(loh)==0){rho=mean(rhov.lsd.subset,na.rm=T)}else{
+              if(length(loh)==0 | all(is.na(loh))){rho=mean(rhov.lsd.subset,na.rm=T)}else{
                rho=max(loh,na.rm=T)
               }
            }
@@ -363,7 +363,7 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
   seglogr.adj=seg$cnlr.median-dipLogR
   idx=which(seglogr.adj>1.6*rho|is.na(which.geno.em))
   if(any(idx)){
-    maf=exp(sqrt(seg$mafR[idx]))
+    maf=exp(sqrt(mafR[idx]))
     t.em[idx]=round((2^(seglogr.adj[idx]+1)-2*(1-rho))/rho,0)
     major.em[idx]=round((t.em[idx]*maf*rho+(maf-1)*(1-rho))/(rho*(maf+1)),0)
     minor.em[idx]=t.em[idx]-major.em[idx]
