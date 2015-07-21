@@ -1,4 +1,4 @@
-#last update:07/13/15
+#last update:07/21/15
 #input
 #x: output from procSample
 #parameters
@@ -57,7 +57,7 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
   n=length(logR)  
     
   #if no big segment that is imbalanced then outplot diploid genome with purity=1
-  if(max(seg$mafR[seglen>10],na.rm=T)<0.1){
+  if(max(mafR[seglen > 10], na.rm = T) < 0.05 & max(abs(seglogr)[seglen > 10], na.rm = T)<0.1){
     rhov.em=rep(1,nseg)
     major.em=rep(1,nseg); minor.em=rep(1,nseg)
     rho=NA
@@ -95,7 +95,7 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
   rhov.lsd.subset[t.lsd>6]=NA
   #rhov.lsd[(major.lsd!=minor.lsd)&minor.lsd!=0]=NA #imbalanced seg has big identifiability issue
   loh=which(major.lsd %in% c(1,2)& minor.lsd==0 & seglen>10) #use only LOH seg for initial estimate
-  if(length(loh)>0){
+  if(length(loh)>1){
     rho=max(rhov.lsd[loh],na.rm=T)
   }else{  
     rho=mean(rhov.lsd.subset,na.rm=T)
@@ -361,22 +361,35 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
   
   #hybrid: for high copy number (t>6), swicth to lsd estimate
   seglogr.adj=seg$cnlr.median-dipLogR
-  idx=which(seglogr.adj>1.6|is.na(which.geno.em))
+  idx=which(seglogr.adj>1.6*rho|is.na(which.geno.em))
   if(any(idx)){
-    genotype.em[idx]=genotype.lsd[idx]
-    t.em[idx]=t.lsd[idx]
-    minor.em[idx]=minor.lsd[idx]
-    major.em[idx]=major.lsd[idx]
+    maf=exp(sqrt(seg$mafR[idx]))
+    t.em[idx]=round((2^(seglogr.adj[idx]+1)-2*(1-rho))/rho,0)
+    major.em[idx]=round((t.em[idx]*maf*rho+(maf-1)*(1-rho))/(rho*(maf+1)),0)
+    minor.em[idx]=t.em[idx]-major.em[idx]
+    genotype.em[idx] = paste("A",major.em[idx], "B", minor.em[idx], sep="")
+    rhov.em[idx]=rho
+    
+    #genotype.em[idx]=genotype.lsd[idx]
+    #t.em[idx]=t.lsd[idx]
+    #minor.em[idx]=minor.lsd[idx]
+    #major.em[idx]=major.lsd[idx]
 
   }
   
   #EM over-calling homozygous deletion, switch to lsa
-  idx=which(which.geno.em==1&seglen>1)
+  idx=which(which.geno.em==1&seglen>10)
   if(any(idx)){
-    genotype.em[idx]=genotype.lsd[idx]
-    t.em[idx]=t.lsd[idx]
-    minor.em[idx]=minor.lsd[idx]
-    major.em[idx]=major.lsd[idx]
+    genotype.em[idx] = "AB"
+    t.em[idx]=2
+    minor.em[idx]=1
+    major.em[idx]=1
+    rhov.em[idx]=NA    
+    
+    #genotype.em[idx]=genotype.lsd[idx]
+    #t.em[idx]=t.lsd[idx]
+    #minor.em[idx]=minor.lsd[idx]
+    #major.em[idx]=major.lsd[idx]
   }
 
   out1=data.frame(seg,cf.em=rhov.em,tcn.em=major.em+minor.em, lcn.em=minor.em)
