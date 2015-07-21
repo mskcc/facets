@@ -44,6 +44,7 @@ fit.cpt.tree <- function(genomdat, edgelim=10, cval=25, hscl=1) {
             # 35 seems a reasonable cutoff based on null simulations
             zzz$ncpt <- ifelse(zzz$ostat > cval, 1, 0)
         } else {
+            if (!exists("zzz")) zzz <- list() # initialize if zzz doesn't exist
             zzz$ncpt <- 0
             zzz$ostat <- 0 # make the statistic 0 for the tree structure
         }
@@ -122,6 +123,7 @@ segsnps <- function(mat, cval=25, hetscale=FALSE) {
     seg.tree <- list()
     for(i in 1:nchr) {
         genomdat <- as.matrix(mat[mat$chrom==i, c("cnlr","valor","het")])
+        if (nrow(genomdat) == 0) stop("chr", i, " has ZERO snps")
         # fit segment tree
         tmp <- fit.cpt.tree(genomdat, cval=cval, hscl=hscl)
         seg.tree[[i]] <- tmp$seg.tree

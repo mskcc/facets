@@ -1,2 +1,5 @@
+.git
 .gitignore
 README.md
+^.*\.Rproj$
+^\.Rproj\.user$

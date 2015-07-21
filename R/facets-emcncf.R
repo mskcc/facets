@@ -88,7 +88,7 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
   which.geno.lsd=match(genotype.lsd,genotype)
     
   rhov.lsd[major.lsd==1&minor.lsd==1]=NA
-  rhov.lsd[nas]=NA
+  #rhov.lsd[nas]=NA
   meanrhov.lsd=mean(rhov.lsd,na.rm=T)
   rhov.lsd.subset=rhov.lsd
   rhov.lsd.subset[which.geno.lsd%in%c(5,7,10,11,14,15)]=NA 

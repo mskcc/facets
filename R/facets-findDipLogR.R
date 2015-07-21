@@ -51,9 +51,16 @@ findDiploidLogR <- function(out, cnlr) {
             gprop <- sapply(umafR, function(mafR0, mafR) {
                                 sum(num.mark[which(mafR <= mafR0)])
                             }, out0$mafR)/nsnps
-            mafR0 <- umafR[which(gprop > 0.1)[1]]
-            # get the clusters
-            bsegs <- which(out0$mafR <= mafR0)
+            if (max(gprop) > 0.1) {
+                mafR0 <- umafR[which(gprop > 0.1)[1]]
+                # get the clusters
+                bsegs <- which(out0$mafR <= mafR0)
+            } else {
+                # super-crappy sample
+                flags <- c(flags, "mafR estimable in <10% genome")
+                # get the clusters
+                bsegs <- which(out0$mafR <= max(umafR))
+            }
         }
     }
     #
