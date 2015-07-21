@@ -1,7 +1,7 @@
 Package: facets
 Type: Package
 Title: Cellular Fraction and Copy Numbers from Tumor Sequencing
-Version: 0.3.1
+Version: 0.3.2
 Date: 2015-07-21
 Author: Venkatraman E. Seshan
 Maintainer: Venkatraman E. Seshan <seshanv@mskcc.org>
