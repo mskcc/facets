@@ -1,3 +1,4 @@
 07/21/2015: v0.3.1
 
-  o Added checks to findDiploidLogR, segsnps and fit.cpt.tree. Fixed emcncf bug. 
+  o Added checks to findDiploidLogR, segsnps and fit.cpt.tree. Fixed
+	emcncf bug. Set default cval to be 50 in procSample.

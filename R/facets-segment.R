@@ -42,6 +42,7 @@ fit.cpt.tree <- function(genomdat, edgelim=10, cval=25, hscl=1) {
                             ostat = double(1))
             # if ostat > cval, there are 2 changepoints, else 0.
             # 35 seems a reasonable cutoff based on null simulations
+            # with hetscale (scaled logOR) use 50 at the minimum
             zzz$ncpt <- ifelse(zzz$ostat > cval, 1, 0)
         } else {
             if (!exists("zzz")) zzz <- list() # initialize if zzz doesn't exist
