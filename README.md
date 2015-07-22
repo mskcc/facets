@@ -16,7 +16,7 @@ oo <- procSample(xx, cval = 300)
 
 And go straight to
 ```R
-emcncf(oo$jointseg, oo$out, dipLogR=oo$dipLogR)
+emcncf(oo)
 ```
 
 The output of procSample now has 4 elements:
