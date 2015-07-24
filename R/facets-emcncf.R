@@ -88,6 +88,7 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
   which.geno.lsd=match(genotype.lsd,genotype)
     
   rhov.lsd[major.lsd==1&minor.lsd==1]=NA
+  rhov.lsd[t.lsd==2&rhov.lsd==1]=NA
   #rhov.lsd[nas]=NA
   meanrhov.lsd=mean(rhov.lsd,na.rm=T)
   rhov.lsd.subset=rhov.lsd
@@ -397,7 +398,7 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
   
   if(rho<0.3){emflags=paste(emflags,"Low purity. Calls can be unreliable.",sep=" ")}
 
-  out=list(loglik=loglik,purity=rho,ploidy=gamma,dipLogR=dipLogR, seglen=seglen,cncf=out1, emflags=emflags)
+  out=list(loglik=loglik,purity=rho,ploidy=gamma,dipLogR=dipLogR,start=startseq,end=endseq,seglen=seglen,cncf=out1, emflags=emflags)
   
   return(out)
   
