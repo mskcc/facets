@@ -43,26 +43,40 @@ clustersegs <- function(out, jointseg, min.nhet=10) {
             # first seg starts a cluster
             mafclust[segs[1]] <- 1
             lorclust[[1]] <- lor[segid==segs[1],]
+            # merge only to a cluster with maf closest to it
+            maffun <- function(x) {sum(((x$valor)^2 - x$lorvar)/x$lorvar)/sum(1/x$lorvar)}
+            # maf of first cluster
+            cmaf <- maffun(lorclust[[1]])
             # loop through other segs
             nclust <- 1
             for (j in 2:length(segs)) {
                 lorj <- lor[segid==segs[j],]
-                # Mann-Whitney p-value comparing wrt existing clusters
-                mwp <- unlist(lapply(lorclust, function(x, y) {
-                                         wilcox.test(abs(x$valor), abs(y$valor), exact=FALSE)$p.value
-                                     }, lorj))
-                # if p-value
-                if (max(mwp) > 0.001) {
-                    j0 <- which.max(mwp)
-                    mafclust[segs[j]] <- j0
-                    lorclust[[j0]] <- rbind(lorclust[[j0]], lorj)
+                mafj <- maffun(lorj)
+                # cluster with lower & higher maf
+                jlo <- which(cmaf < mafj)[which.max(cmaf[cmaf < mafj])]
+                jhi <- which(cmaf > mafj)[which.min(cmaf[cmaf > mafj])]
+                # Mann-Whitney p-value compared wrt existing clusters
+                mwplo <- mwphi <- 0
+                if (length(jlo) > 0) mwplo <- wilcox.test(abs(lorclust[[jlo]]$valor), abs(lorj$valor), exact=FALSE)$p.value
+                if (length(jhi) > 0) mwphi <- wilcox.test(abs(lorclust[[jhi]]$valor), abs(lorj$valor), exact=FALSE)$p.value
+                # if p-value is not small enough
+                if (max(mwplo, mwphi) > 0.001) {
+                    if (mwplo > mwphi) {
+                        mafclust[segs[j]] <- jlo
+                        lorclust[[jlo]] <- rbind(lorclust[[jlo]], lorj)
+                        cmaf[jlo] <- maffun(lorclust[[jlo]])
+                    } else {
+                        mafclust[segs[j]] <- jhi
+                        lorclust[[jhi]] <- rbind(lorclust[[jhi]], lorj)
+                        cmaf[jhi] <- maffun(lorclust[[jhi]])
+                    }
                 } else {
                     nclust <- nclust+1
                     mafclust[segs[j]] <- nclust
                     lorclust[[nclust]] <- lorj
+                    cmaf <- c(cmaf, mafj)
                 }
             }
-            cmaf <- unlist(lapply(lorclust, function(x) {sum(((x$valor)^2 - x$lorvar)/x$lorvar)/sum(1/x$lorvar)}))
             mafR.clust[ii] <- cmaf[mafclust[ii]]
         } else {
             mafclust[ii] <- 1

@@ -37,6 +37,7 @@ findDiploidLogR <- function(out, cnlr) {
     # mafR < 0.025 allows for single copy change at no more than 17.13%
     # check if there are balanced clusters
     bsegs <- which(out0$mafR < 0.025)
+    mafR.thresh <- 0.025
     # if none exists of if balanced segs span less than 10% of genome
     # use clusters with smallest mafR
     if (sum(num.mark[bsegs])/nsnps < 0.1) {
@@ -44,6 +45,7 @@ findDiploidLogR <- function(out, cnlr) {
         flags <- "mafR not sufficiently small"
         # get bsegs with mafR < 0.05; single copy change at 25%
         bsegs <- which(out0$mafR < 0.05)
+        mafR.thresh <- 0.025
         # if still not 10% add more segments to get to 10%
         if (sum(num.mark[bsegs])/nsnps < 0.1) {
             # mafR threshold needed to get just above 10% of genome
@@ -52,7 +54,17 @@ findDiploidLogR <- function(out, cnlr) {
                                 sum(num.mark[which(mafR <= mafR0)])
                             }, out0$mafR)/nsnps
             if (max(gprop) > 0.1) {
-                mafR0 <- umafR[which(gprop > 0.1)[1]]
+                umafR <- umafR[which(gprop > 0.1)]
+                # first time it exceeded the proportion threshold
+                mafR1 <- mafR0 <- umafR[1]
+                # place where there is a gap of 0.01 in mafR
+                if (length(umafR) > 1) {
+                    j <- which(diff(umafR) > 0.01)[1]
+                    mafR1 <- umafR[j]
+                }
+                # if mafR1 is small enough pick mafR1 o/w mafR0
+                if (mafR1 < 1.25*mafR0) mafR0 <- mafR1
+                mafR.thresh <- mafR0
                 # get the clusters
                 bsegs <- which(out0$mafR <= mafR0)
             } else {
@@ -253,9 +265,9 @@ findDiploidLogR <- function(out, cnlr) {
     
     out0 <- out0[order(out0$segclust),] # reorder by segclust
     if (is.null(wgd.likely)) {
-        list(out0=out0, dipLogR=cn2logR, alBalLogR=cbind(dipLogR,nbal/nsnps), flags=flags)
+        list(out0=out0, dipLogR=cn2logR, alBalLogR=cbind(dipLogR,nbal/nsnps), mafR.thresh=mafR.thresh, flags=flags)
     } else {
-        list(out0=out0, dipLogR=cn2logR, altDipLogR=altDipLogR, alBalLogR=cbind(dipLogR,nbal/nsnps), flags=flags)
+        list(out0=out0, dipLogR=cn2logR, altDipLogR=altDipLogR, alBalLogR=cbind(dipLogR,nbal/nsnps), mafR.thresh=mafR.thresh, flags=flags)
     }
 }
 

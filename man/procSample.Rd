@@ -5,7 +5,7 @@
   Processes the output from preProcSample for given cval and min.nhet
 }
 \usage{
-  procSample(x, cval=50, min.nhet=25)
+  procSample(x, cval=50, min.nhet=15)
 }
 \arguments{
   \item{x}{the output from preProcSample; should contain seg.tree and jointseg}

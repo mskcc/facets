@@ -1,3 +1,11 @@
+07/24/2015: v0.3.3
+
+  o default min.nhet set to 15. changes to findDiploidLogR and clustersegs. 
+
+07/22/2015: v0.3.2
+
+  o Fixed bugs in emcncf (Ronglai)
+
 07/21/2015: v0.3.1
 
   o Added checks to findDiploidLogR, segsnps and fit.cpt.tree. Fixed
