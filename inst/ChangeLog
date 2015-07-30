@@ -1,6 +1,14 @@
+07/30/2015: v0.3.4
+
+  o Changed fitcncf to use more stringent deviation measure.
+
+07/24/2015: v0.3.4
+
+  o Fixed bugs in emcncf (Ronglai)
+
 07/24/2015: v0.3.3
 
-  o default min.nhet set to 15. changes to findDiploidLogR and clustersegs. 
+  o default min.nhet set to 15. changes to findDiploidLogR and clustersegs.
 
 07/22/2015: v0.3.2
 

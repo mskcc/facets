@@ -32,14 +32,14 @@ fitcncf0 <- function(out, dipLogR=0) {
             if (ocn > 2.15) {
                 tcn <- ceiling(ocn)
                 uu <- optcfutil(tcn, ocn, maf)
-                # it distance measure is large
-                if (uu[3] > 0.05) {
+                # it distance measure is large - 0.0225 when diff CN of 0.15
+                if (uu[3] > 0.0225) {
                     tcn1 <- tcn+1
                     uu1 <- optcfutil(tcn1, ocn, maf)
                     # if distance measure is reduced by at least 20%
                     if (uu1[3] < 0.8*uu[3]) {
-                        # if distance is still large
-                        if (uu1[3] > 0.025) {
+                        # if distance is still large - 0.01 when diff CN of 0.1
+                        if (uu1[3] > 0.01) {
                             tcn2 <- tcn+2
                             uu2 <- optcfutil(tcn2, ocn, maf)
                             if (uu2[3] < 0.8*uu1[3]) {
