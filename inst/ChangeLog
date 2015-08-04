@@ -1,4 +1,8 @@
-07/30/2015: v0.3.4
+08/04/2015: v0.3.6
+
+  o Added dipLogR argument to procSample to help reprocess with lower cval.
+
+07/30/2015: v0.3.5
 
   o Changed fitcncf to use more stringent deviation measure.
 
