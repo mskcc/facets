@@ -6,7 +6,7 @@ preProcSample <- function(filename, ndepth=35, het.thresh=0.25, snp.nbhd=250, cv
     c(out, tmp)
 }
 
-procSample <- function(x, cval=50, min.nhet=15) {
+procSample <- function(x, cval=50, min.nhet=15, dipLogR=NULL) {
     # ensure availability of seg.tree
     if (is.null(x$seg.tree)) stop("seg.tree is not available")
     # make sure that original cval is smaller than current one
@@ -29,7 +29,13 @@ procSample <- function(x, cval=50, min.nhet=15) {
     # put in the clustered values for snps
     jseg$segclust[is.finite(jseg$cnlr)] <- rep(out$segclust, out$num.mark)
     # find dipLogR and fit cncf
-    oo <- findDiploidLogR(out, jseg$cnlr)
+    if (is.null(dipLogR)) {
+        oo <- findDiploidLogR(out, jseg$cnlr)
+    } else {
+        oo <- list()
+        oo$out0 <- "empty"
+        oo$dipLogR <- dipLogR
+    }
     out <- fitcncf(out, oo$dipLogR)
     c(list(jointseg=jseg, out=out), oo[-1])
 }
