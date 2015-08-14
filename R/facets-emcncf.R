@@ -365,8 +365,16 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
   idx=which(seglogr.adj>1.6*rho|is.na(which.geno.em))
   if(any(idx)){
     maf=exp(sqrt(mafR[idx]))
-    t.em[idx]=round((2^(seglogr.adj[idx]+1)-2*(1-rho))/rho,0)
-    major.em[idx]=round((t.em[idx]*maf*rho+(maf-1)*(1-rho))/(rho*(maf+1)),0)
+    #t.em[idx]=round((2^(seglogr.adj[idx]+1)-2*(1-rho))/rho,0)
+    #major.em[idx]=round((t.em[idx]*maf*rho+(maf-1)*(1-rho))/(rho*(maf+1)),0)
+    
+    tt=round((2^(seglogr.adj[idx]+1)-2*(1-rho))/rho,0)
+    mm=round((t.em[idx]*maf*rho+(maf-1)*(1-rho))/(rho*(maf+1)),0)
+    re=which(mm>tt) #rounding error can cause major>t
+    if(any(re)){mm[re]=tt[re]}    
+    t.em[idx]=tt
+    major.em[idx]=mm
+
     minor.em[idx]=t.em[idx]-major.em[idx]
     genotype.em[idx] = paste("A",major.em[idx], "B", minor.em[idx], sep="")
     rhov.em[idx]=rho
