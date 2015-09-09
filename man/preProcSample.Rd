@@ -6,7 +6,8 @@
 }
 \usage{
   preProcSample(filename, ndepth=35, het.thresh=0.25, snp.nbhd=250,
-                cval=25, chromlevels=c(1:22,"X"), hetscale=TRUE)
+                cval=25, chromlevels=c(1:22,"X"), hetscale=TRUE,
+                unmatched=FALSE)
 }
 \arguments{
   \item{filename}{input matrix of read depths and variant allele frequencies}
@@ -20,6 +21,9 @@
     weight in the test statistics for segmentation and clustering. Usually
     only 10\% of snps are hets and hetscale gives the logOR contribution
     to T-square as 0.25/proportion of hets.}
+  \item{unmatched}{indicator of whether the normal sample is unmatched.
+    When this is TRUE hets are called using tumor reads only and logOR
+    calculations are different. Use het.thresh = 0.1 or lower when TRUE.}
 }
 \value{
   A list consisting of three elements:

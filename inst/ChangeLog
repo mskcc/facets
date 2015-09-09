@@ -1,3 +1,13 @@
+09/09/2015: v0.3.8
+
+  o Modified balanced seg selection restrict to  mafR < 0.1
+  o Winsorize maf calculation to dampen extreme valor values.
+  o Added unmatched normal code.
+
+08/14/2015: v0.3.7
+
+  o Fixed negative copy numbers in emcncf
+
 08/04/2015: v0.3.6
 
   o Added dipLogR argument to procSample to help reprocess with lower cval.

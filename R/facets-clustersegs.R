@@ -31,6 +31,15 @@ clustersegs <- function(out, jointseg, min.nhet=10) {
     # loop through the ocnclust to cluster based on mafR
     mafR.clust <- mafclust <- rep(NA, nsegs)
     # function to estimate maf from clustered data
+    maffun <- function(x) {
+        # occasional extreme valor can screw maf. so winsorize the maf
+        valor <- x$valor
+        lorvar <- x$lorvar
+        valor.thresh <- median(valor) + 3*sqrt(quantile(lorvar, 0.8, type=1))
+        valor[valor > valor.thresh] <- valor.thresh
+        sum(((valor)^2 - lorvar)/lorvar)/sum(1/lorvar)
+    }
+    # loop through ocn clusters
     for(i in unique(ocnclust)) {
         ii <- ocnclust==i & out$nhet >= min.nhet
         segs <- which(ii)
@@ -44,7 +53,6 @@ clustersegs <- function(out, jointseg, min.nhet=10) {
             mafclust[segs[1]] <- 1
             lorclust[[1]] <- lor[segid==segs[1],]
             # merge only to a cluster with maf closest to it
-            maffun <- function(x) {sum(((x$valor)^2 - x$lorvar)/x$lorvar)/sum(1/x$lorvar)}
             # maf of first cluster
             cmaf <- maffun(lorclust[[1]])
             # loop through other segs

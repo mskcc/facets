@@ -1,6 +1,6 @@
-preProcSample <- function(filename, ndepth=35, het.thresh=0.25, snp.nbhd=250, cval=25, chromlevels=c(1:22,"X"), hetscale=TRUE) {
-    pmat <- procSnpsDT(filename, ndepth, het.thresh, snp.nbhd, chromlevels)
-    dmat <- counts2logROR(pmat[pmat$rCountT>0,])
+preProcSample <- function(filename, ndepth=35, het.thresh=0.25, snp.nbhd=250, cval=25, chromlevels=c(1:22,"X"), hetscale=TRUE, unmatched=FALSE) {
+    pmat <- procSnpsDT(filename, ndepth, het.thresh, snp.nbhd, chromlevels, unmatched)
+    dmat <- counts2logROR(pmat[pmat$rCountT>0,], unmatched)
     tmp <- segsnps(dmat, cval, hetscale)
     out <- list(pmat=pmat)
     c(out, tmp)

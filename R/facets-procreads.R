@@ -1,5 +1,5 @@
 # heterozygous and keep flags of the SNPs
-procSnps <- function(filename, ndepth=35, het.thresh=0.25, snp.nbhd=250, chromlevels=c(1:22,"X")) {
+procSnps <- function(filename, ndepth=35, het.thresh=0.25, snp.nbhd=250, chromlevels=c(1:22,"X"), unmatched=FALSE) {
     # read the SNP matrix
     xx <- scan(filename, what=list(Chrom="", Pos=0, Ref="", Alt="", TUM.DP=0, TUM.Ap=0, TUM.Cp=0, TUM.Gp=0, TUM.Tp=0, TUM.An=0, TUM.Cn=0, TUM.Gn=0, TUM.Tn=0, NOR.DP=0, NOR.Ap=0, NOR.Cp=0, NOR.Gp=0, NOR.Tp=0, NOR.An=0, NOR.Cn=0, NOR.Gn=0, NOR.Tn=0), sep="\t", skip=1)
     # remove chr if present in Chrom
@@ -26,7 +26,12 @@ procSnps <- function(filename, ndepth=35, het.thresh=0.25, snp.nbhd=250, chromle
     # make chromosome ordered and numeric
     out$chrom <- as.numeric(ordered(out$chrom, levels=chromlevels))
     # call a snp heterozygous if min(vafN, 1-mafN) > het.thresh
-    out$het <- 1*(pmin(out$vafN, 1-out$vafN) > het.thresh)
+    if (unmatched) {
+        if (het.thresh == 0.25) het.thresh <- 0.1
+        out$het <- 1*(pmin(out$vafT, 1-out$vafT) > het.thresh & out$rCountT >= 50)
+    } else {
+        out$het <- 1*(pmin(out$vafN, 1-out$vafN) > het.thresh)
+    }
     # scan maploc for snps that are close to one another (within snp.nbhd bases)
     # heep all the hets (should change if too close) and only one from a nbhd
     out$keep <- scanSnp(out$maploc, out$het, snp.nbhd)
@@ -34,7 +39,7 @@ procSnps <- function(filename, ndepth=35, het.thresh=0.25, snp.nbhd=250, chromle
 }
 
 # procSnps code above redone to use fread in data.table
-procSnpsDT <- function(filename, ndepth=35, het.thresh=0.25, snp.nbhd=250, chromlevels=c(1:22,"X")) {
+procSnpsDT <- function(filename, ndepth=35, het.thresh=0.25, snp.nbhd=250, chromlevels=c(1:22,"X"), unmatched=FALSE) {
     # read the SNP matrix
     xx <- fread(paste("gunzip -c", filename), header=T, sep="\t")
     # remove chr if present in Chrom add it chromlevels
@@ -59,7 +64,12 @@ procSnpsDT <- function(filename, ndepth=35, het.thresh=0.25, snp.nbhd=250, chrom
     # make chromosome ordered and numeric
     out$chrom <- as.numeric(ordered(out$chrom, levels=chromlevels))
     # call a snp heterozygous if min(vafN, 1-mafN) > het.thresh
-    out$het <- 1*(pmin(out$vafN, 1-out$vafN) > het.thresh)
+    if (unmatched) {
+        if (het.thresh == 0.25) het.thresh <- 0.1
+        out$het <- 1*(pmin(out$vafT, 1-out$vafT) > het.thresh & out$rCountT >= 50)
+    } else {
+        out$het <- 1*(pmin(out$vafN, 1-out$vafN) > het.thresh)
+    }
     # scan maploc for snps that are close to one another (within snp.nbhd bases)
     # heep all the hets (should change if too close) and only one from a nbhd
     out$keep <- scanSnp(out$maploc, out$het, snp.nbhd)
@@ -78,7 +88,7 @@ scanSnp <- function(maploc, het, nbhd) {
 }
 
 # obtain logR and logOR from read counts and GC-correct logR
-counts2logROR <- function(mat, f=0.2) {
+counts2logROR <- function(mat, unmatched=FALSE, f=0.2) {
     out <- mat[mat$keep==1,]
     # gc percentage
     out$gcpct <- rep(NA_real_, nrow(out))
@@ -113,12 +123,21 @@ counts2logROR <- function(mat, f=0.2) {
     cnlr <- log2(1+rCountT*tscl) - log2(1+rCountN) - gcbias
     # minor allele log-odds ratio and weights
     lorvar <- valor <- rep(NA_real_, length(maploc))
-    # read count matrix for odds ratio p-value etc
-    rcmat <- round(cbind(vafT[het==1]*rCountT[het==1], (1-vafT[het==1])*rCountT[het==1], vafN[het==1]*rCountN[het==1], (1-vafN[het==1])*rCountN[het==1]))
-    # log-odds-ratio (Haldane correction)
-    valor[het==1] <- log(rcmat[,1]+0.5) - log(rcmat[,2]+0.5) - log(rcmat[,3]+0.5) + log(rcmat[,4]+0.5)
-    # variance of log-odds-ratio (Haldane; Gart & Zweifel Biometrika 1967) 
-    lorvar[het==1] <- (1/(rcmat[,1]+0.5) + 1/(rcmat[,2]+0.5) + 1/(rcmat[,3]+0.5) + 1/(rcmat[,4]+0.5))
+    if (unmatched) {
+        # read count matrix for odds ratio etc
+        rcmat <- round(cbind(vafT[het==1]*rCountT[het==1], (1-vafT[het==1])*rCountT[het==1]))
+        # folded log ot Tukey (with 1/6 correction)
+        valor[het==1] <- log(rcmat[,1]+1/6) - log(rcmat[,2]+1/6)
+        # variance - approximation using delta method
+        lorvar[het==1] <- 1/(rcmat[,1]+1/6) + 1/(rcmat[,2]+1/6)
+    } else {
+        # read count matrix for odds ratio etc
+        rcmat <- round(cbind(vafT[het==1]*rCountT[het==1], (1-vafT[het==1])*rCountT[het==1], vafN[het==1]*rCountN[het==1], (1-vafN[het==1])*rCountN[het==1]))
+        # log-odds-ratio (Haldane correction)
+        valor[het==1] <- log(rcmat[,1]+0.5) - log(rcmat[,2]+0.5) - log(rcmat[,3]+0.5) + log(rcmat[,4]+0.5)
+        # variance of log-odds-ratio (Haldane; Gart & Zweifel Biometrika 1967)
+        lorvar[het==1] <- (1/(rcmat[,1]+0.5) + 1/(rcmat[,2]+0.5) + 1/(rcmat[,3]+0.5) + 1/(rcmat[,4]+0.5))
+    }
     # put them together
     out$lorvar <- out$valor <- out$cnlr <- out$gcbias <- rep(NA_real_, nrow(out))
     out$gcbias <- gcbias

@@ -26,9 +26,9 @@
 \usage{
 jointsegsummary(jointseg)
 mafmle(fcount, vaf)
-procSnps(filename, ndepth=35, het.thresh=0.25, snp.nbhd=250, chromlevels=c(1:22,"X"))
-procSnpsDT(filename, ndepth=35, het.thresh=0.25, snp.nbhd=250, chromlevels=c(1:22,"X"))
-counts2logROR(mat, f=0.2)
+procSnps(filename, ndepth=35, het.thresh=0.25, snp.nbhd=250, chromlevels=c(1:22,"X"), unmatched=FALSE)
+procSnpsDT(filename, ndepth=35, het.thresh=0.25, snp.nbhd=250, chromlevels=c(1:22,"X"), unmatched=FALSE)
+counts2logROR(mat, unmatched=FALSE, f=0.2)
 scanSnp(maploc, het, nbhd)
 fit.cpt.tree(genomdat, edgelim=10, cval=25, hscl = 1)
 prune.cpt.tree(seg.tree, cval=25)

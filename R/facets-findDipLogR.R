@@ -36,42 +36,22 @@ findDiploidLogR <- function(out, cnlr) {
     #
     # mafR < 0.025 allows for single copy change at no more than 17.13%
     # check if there are balanced clusters
-    bsegs <- which(out0$mafR < 0.025)
     mafR.thresh <- 0.025
+    bsegs <- which(out0$mafR < mafR.thresh)
     # if none exists of if balanced segs span less than 10% of genome
     # use clusters with smallest mafR
     if (sum(num.mark[bsegs])/nsnps < 0.1) {
         # set flag
         flags <- "mafR not sufficiently small"
         # get bsegs with mafR < 0.05; single copy change at 25%
-        bsegs <- which(out0$mafR < 0.05)
-        mafR.thresh <- 0.025
-        # if still not 10% add more segments to get to 10%
+        mafR.thresh <- 0.05
+        bsegs <- which(out0$mafR < mafR.thresh)
+        # if still not 10% use mafR.thresh of 0.09 (single copy gain at 35%)
         if (sum(num.mark[bsegs])/nsnps < 0.1) {
-            # mafR threshold needed to get just above 10% of genome
-            umafR <- unique(sort(mafR))
-            gprop <- sapply(umafR, function(mafR0, mafR) {
-                                sum(num.mark[which(mafR <= mafR0)])
-                            }, out0$mafR)/nsnps
-            if (max(gprop) > 0.1) {
-                umafR <- umafR[which(gprop > 0.1)]
-                # first time it exceeded the proportion threshold
-                mafR1 <- mafR0 <- umafR[1]
-                # place where there is a gap of 0.01 in mafR
-                if (length(umafR) > 1) {
-                    j <- which(diff(umafR) > 0.01)[1]
-                    mafR1 <- umafR[j]
-                }
-                # if mafR1 is small enough pick mafR1 o/w mafR0
-                if (mafR1 < 1.25*mafR0) mafR0 <- mafR1
-                mafR.thresh <- mafR0
-                # get the clusters
-                bsegs <- which(out0$mafR <= mafR0)
-            } else {
-                # super-crappy sample
-                flags <- c(flags, "mafR estimable in <10% genome")
-                # get the clusters
-                bsegs <- which(out0$mafR <= max(umafR))
+            mafR.thresh <- 0.09
+            bsegs <- which(out0$mafR < mafR.thresh)
+            if (sum(num.mark[bsegs])/nsnps < 0.1) {
+                flags <- c(flags, "mafR<0.09 in less than 10% genome")
             }
         }
     }
@@ -96,8 +76,15 @@ findDiploidLogR <- function(out, cnlr) {
             }
         }
     } else {
-        dipLogR <- cnlr.median[bsegs]
-        nbal <- num.mark[bsegs]
+        # make sure bsegs is not empty
+        if (length(bsegs) == 0) {
+            # if no balanced segs set dipLogR at the median of cnlr
+            dipLogR <- median(cnlr)
+            nbal <- 0
+        } else {
+            dipLogR <- cnlr.median[bsegs]
+            nbal <- num.mark[bsegs]
+        }
     }
     names(dipLogR) <- NULL
     names(nbal) <- NULL

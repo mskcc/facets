@@ -30,6 +30,15 @@ jointsegsummary <- function(jointseg) {
     nsegs <- max(jointseg$seg)
     out <- as.data.frame(matrix(0, nsegs, 6))
     names(out) <- c("chrom","seg","num.mark","nhet","cnlr.median","mafR")
+    # function to estimate maf from valor and lorvar
+    maffun <- function(x) {
+        # occasional extreme valor can screw maf. so winsorize the maf
+        valor <- x$valor
+        lorvar <- x$lorvar
+        valor.thresh <- median(valor) + 3*sqrt(quantile(lorvar, 0.8, type=1))
+        valor[valor > valor.thresh] <- valor.thresh
+        sum(((valor)^2 - lorvar)/lorvar)/sum(1/lorvar)
+    }
     # loop over the segments
     for(seg in 1:nsegs) {
         zz <- jointseg[jointseg$seg==seg, c("chrom","cnlr","het","valor","lorvar")]
@@ -42,7 +51,7 @@ jointsegsummary <- function(jointseg) {
         out[seg,5] <- median(zz$cnlr)
         if (out[seg,4] > 0) {
             # weighted average of squared log-odds ratio minus variance
-            out[seg,6] <- sum(((zz1$valor)^2 - zz1$lorvar)/zz1$lorvar)/sum(1/zz1$lorvar)
+            out[seg,6] <- maffun(zz1)
         }
     }
     out
