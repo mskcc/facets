@@ -33,10 +33,14 @@ jointsegsummary <- function(jointseg) {
     # function to estimate maf from valor and lorvar
     maffun <- function(x) {
         # occasional extreme valor can screw maf. so winsorize the maf
-        valor <- x$valor
+        valor <- abs(x$valor)
         lorvar <- x$lorvar
+        # extreme large values
         valor.thresh <- median(valor) + 3*sqrt(quantile(lorvar, 0.8, type=1))
         valor[valor > valor.thresh] <- valor.thresh
+        # extreme small values (not likely)
+        valor.thresh <- median(valor) - 3*sqrt(quantile(lorvar, 0.8, type=1))
+        valor[valor < valor.thresh] <- valor.thresh
         sum(((valor)^2 - lorvar)/lorvar)/sum(1/lorvar)
     }
     # loop over the segments
