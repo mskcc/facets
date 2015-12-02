@@ -1,4 +1,4 @@
-#last update:07/21/15
+#last update:12/01/15
 #input
 #x: output from procSample
 #parameters
@@ -80,28 +80,34 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
   
   homdel=which(major.lsd==0&major.lsd==0)
   genotype.lsd=rep(NA,nseg)
-  genotype.lsd[homdel]="0"
+  #genotype.lsd[homdel]="0"
   
   a=lapply(1:sum(!nas),function(x)paste(rep("A",major.lsd[!nas][x]),collapse=""))
   b=lapply(1:sum(!nas),function(x)paste(rep("B",minor.lsd[!nas][x]),collapse=""))
   genotype.lsd[!nas]=unlist(lapply(1:sum(!nas),function(x)paste(a[[x]],b[[x]],sep="")))
+  genotype.lsd[homdel]="0"
   which.geno.lsd=match(genotype.lsd,genotype)
     
   rhov.lsd[major.lsd==1&minor.lsd==1]=NA
   rhov.lsd[t.lsd==2&rhov.lsd==1]=NA
   #rhov.lsd[nas]=NA
-  meanrhov.lsd=mean(rhov.lsd,na.rm=T)
+  naive=median(rhov.lsd[seglen>15],na.rm=T)
+  
   rhov.lsd.subset=rhov.lsd
-  rhov.lsd.subset[which.geno.lsd%in%c(5,7,10,11,14,15)]=NA 
+  rhov.lsd.subset[which.geno.lsd%in%c(5,7,10,11,14,15,NA)]=NA 
   rhov.lsd.subset[t.lsd>6]=NA
+  rhov.lsd.subset[seglen<15]=NA
   #rhov.lsd[(major.lsd!=minor.lsd)&minor.lsd!=0]=NA #imbalanced seg has big identifiability issue
-  loh=which(major.lsd %in% c(1,2)& minor.lsd==0 & seglen>10) #use only LOH seg for initial estimate
+  loh=which(major.lsd %in% c(1,2)& minor.lsd==0 & seglen>15) #use only LOH seg for initial estimate
+  
+  rho=NA
   if(length(loh)>1){
     rho=max(rhov.lsd[loh],na.rm=T)
   }else{  
-    rho=mean(rhov.lsd.subset,na.rm=T)
+    if(!all(is.na(rhov.lsd.subset)))rho=median(rhov.lsd.subset,na.rm=T)
   }
-  if(is.na(rho)){rho=meanrhov.lsd}
+  rho=max(naive,rho,na.rm=T)
+
   
   lowpur=FALSE  
   #if(rho<0.35){lowpur=TRUE}
@@ -297,35 +303,40 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
       rhov.long[idx]=rhov.lsd[idx]
       which.geno.long[idx]=which.geno.lsd[idx]
     }
-    meanrho=mean(rhov.long,na.rm=T)
+    meanrho=median(rhov.long[seglen>15],na.rm=T)
     rhov.long.subset=rhov.long
-    rhov.long.subset[which.geno.long %in% c(5,7,10,11,14,15)]=NA #Imbalanced gains have big identifiability issue
+    rhov.long.subset[which.geno.long %in% c(5,7,10,11,14,15,NA)]=NA #Imbalanced gains have big identifiability issue
+    rhov.long.subset[seglen<15]=NA
     
     #if low purity, assume rhov the same
     #if more than 100 seg give rho estimate, use density to find rho
     #otherwise use LOH seg for purity estimate
     if(all(is.na(rhov.long))){
-      rho=max(rhov.lsd,na.rm=T)
+      rho=naive
       }else{  
        if(lowpur){          
-          rho=mean(rhov.long[rhov.long>0.1],na.rm=T)     
+          rho=max(rhov.long[rhov.long>0.1],na.rm=T)     
           rhov=rep(rho,nclust)      
         }else{       
             nona=na.omit(rhov.long)        
             if(length(nona)>100){
                rho=find.mode(nona)$rho
             }else{
-              loh=rhov.long[major[which.geno.long]%in%c(1,2) & minor[which.geno.long]==0 & seglen>10]
-              if(length(loh)==0 | all(is.na(loh))){rho=mean(rhov.lsd.subset,na.rm=T)}else{
-               rho=max(loh,na.rm=T)
+              loh=rhov.long[major[which.geno.long]>=1 & minor[which.geno.long]==0 & seglen>15]
+              if(length(loh)>1 & !all(is.na(loh))){
+                rho=max(loh,na.rm=T)
+              }else{
+                if(!all(is.na(rhov.lsd.subset)))rho=median(rhov.lsd.subset,na.rm=T)
               }
-           }
-      if(is.na(rho)){rho=meanrho}        
-      #for noninformative region, plug in sample purity
-      rhov[is.na(rhov)]=rho    
-      #constraint: any segment cannot have purity higher than the mode purity 
-      rhov[rhov>rho]=rho
-      #rhov[rhov<0.1]=rho
+            }
+
+            rho=max(meanrho,rho)
+
+            #for noninformative region, plug in sample purity
+            rhov[is.na(rhov)]=rho    
+            #constraint: any segment cannot have purity higher than the mode purity 
+            rhov[rhov>rho]=rho
+            rhov[rhov<0.1]=rho
         }
     }
   
@@ -346,6 +357,11 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
   
   rhov.em=rhov[seg$segclust]
   which.geno.em=which.geno[seg$segclust]
+  nas=which(is.na(which.geno.em))
+  if(any(nas)){
+  which.geno.em[nas]=which.geno.lsd[nas]
+  rhov.em[nas]=rhov.lsd[nas]
+  }
   
   #no information from A1B1 segments
   rhov.em[which.geno.em==4]=NA
