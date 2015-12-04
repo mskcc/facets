@@ -1,4 +1,4 @@
-#last update:12/01/15
+#last update:12/03/15
 #input
 #x: output from procSample
 #parameters
@@ -26,7 +26,8 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
   nmark=seg$num.mark
   segs=rep(1:length(nmark),nmark)  
   nseg=length(nmark)
-  if(nseg>300)stop("Likely hyper-segmented. Increase cval in procSample.")
+  segclust=seg$segclust
+  if(nseg>500)stop("Likely hyper-segmented. Increase cval in procSample.")
   
   
   endseq=jointseg[cumsum(nmark),2]
@@ -80,7 +81,6 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
   
   homdel=which(major.lsd==0&major.lsd==0)
   genotype.lsd=rep(NA,nseg)
-  #genotype.lsd[homdel]="0"
   
   a=lapply(1:sum(!nas),function(x)paste(rep("A",major.lsd[!nas][x]),collapse=""))
   b=lapply(1:sum(!nas),function(x)paste(rep("B",minor.lsd[!nas][x]),collapse=""))
@@ -90,8 +90,7 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
     
   rhov.lsd[major.lsd==1&minor.lsd==1]=NA
   rhov.lsd[t.lsd==2&rhov.lsd==1]=NA
-  #rhov.lsd[nas]=NA
-  naive=median(rhov.lsd[seglen>15],na.rm=T)
+  naive=max(by(rhov.lsd[seglen>15],segclust[seglen>15],function(x)mean(x,na.rm=T)),na.rm=T)
   
   rhov.lsd.subset=rhov.lsd
   rhov.lsd.subset[which.geno.lsd%in%c(5,7,10,11,14,15,NA)]=NA 
@@ -102,28 +101,26 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
   
   rho=NA
   if(length(loh)>1){
-    rho=max(rhov.lsd[loh],na.rm=T)
+    rho=max(by(rhov.lsd[loh],segclust[loh],function(x)mean(x,na.rm=T)),na.rm=T)
   }else{  
-    if(!all(is.na(rhov.lsd.subset)))rho=median(rhov.lsd.subset,na.rm=T)
+    if(length(na.omit(rhov.lsd.subset))>1)rho=max(by(rhov.lsd.subset,segclust,function(x)mean(x,na.rm=T)),na.rm=T)
   }
-  rho=max(naive,rho,na.rm=T)
+  
+  if(is.na(rho))rho=naive
 
-  
-  lowpur=FALSE  
-  #if(rho<0.35){lowpur=TRUE}
-  
-  if(lowpur){
-    #rho=max(0.5,rho)
-    rhov=rep(rho,nclust)
-    }else{
   rhov=rhov.lsd   
   rhov[is.na(rhov)]=rho
   #avoid initial value too low
-  #rhov[rhov<0.1]=rho
+  rhov[rhov<0.1]=rho
   #avoid 1
   rhov[rhov==1]=rho  
-  rhov=as.vector(by(rhov,seg$segclust,mean))
-  }
+  rhov=as.vector(by(rhov,segclust,mean))
+
+  lowpur=FALSE
+#   if(rho<0.35){lowpur=TRUE}
+#   if(lowpur){
+#     rhov=rep(rho,nclust)
+#     }
 
   #center logR at diphet
   logR.adj=logR-dipLogR
@@ -297,13 +294,15 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
     rhov.long=rhov[seg$segclust]
     which.geno.long=which.geno[seg$segclust] 
     rhov.long[which.geno.long == 4]=NA
-    #EM tend to overfit for homdel
-    if(sum(which.geno.long == 1,na.rm=T)>0){
-      idx=which(which.geno.long == 1)
-      rhov.long[idx]=rhov.lsd[idx]
-      which.geno.long[idx]=which.geno.lsd[idx]
-    }
-    meanrho=median(rhov.long[seglen>15],na.rm=T)
+    
+#     #EM tend to overfit for homdel
+#     if(sum(which.geno.long == 1,na.rm=T)>0){
+#       idx=which(which.geno.long == 1)
+#       rhov.long[idx]=rhov.lsd[idx]
+#       which.geno.long[idx]=which.geno.lsd[idx]
+#     }
+    
+    meanrho=max(by(rhov.long[seglen>15],segclust[seglen>15],function(x)mean(x,na.rm=T)),na.rm=T)
     rhov.long.subset=rhov.long
     rhov.long.subset[which.geno.long %in% c(5,7,10,11,14,15,NA)]=NA #Imbalanced gains have big identifiability issue
     rhov.long.subset[seglen<15]=NA
@@ -322,27 +321,26 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
             if(length(nona)>100){
                rho=find.mode(nona)$rho
             }else{
-              loh=rhov.long[major[which.geno.long]>=1 & minor[which.geno.long]==0 & seglen>15]
+              loh=which(major[which.geno.long]>=1 & minor[which.geno.long]==0 & seglen>15)
+              rhov.loh=rep(NA,length(rhov.long))
+              rhov.loh[loh]=rhov.long[loh]
               if(length(loh)>1 & !all(is.na(loh))){
-                rho=max(loh,na.rm=T)
+                rho=max(by(rhov.loh,segclust,function(x)mean(x,na.rm=T)),na.rm=T)
               }else{
-                if(!all(is.na(rhov.lsd.subset)))rho=median(rhov.lsd.subset,na.rm=T)
+                if(length((na.omit(rhov.long.subset)))>1)rho=max(by(rhov.long.subset,segclust,function(x)mean(x,na.rm=T)),na.rm=T)
               }
             }
-
-            rho=max(meanrho,rho)
-
-            #for noninformative region, plug in sample purity
-            rhov[is.na(rhov)]=rho    
-            #constraint: any segment cannot have purity higher than the mode purity 
-            rhov[rhov>rho]=rho
-            rhov[rhov<0.1]=rho
-        }
-    }
+          }
+         }
   
+    if(is.na(rho))rho=meanrho
+    rhov[is.na(rhov)]=rho    
+    #constraint: any segment cannot have purity higher than the mode purity 
+    rhov[rhov>rho]=rho
+    rhov[rhov<0.1]=rho
     
     dif = quantile(abs(rhov-rhov.old),0.9,na.rm=T)
-    
+
     if(trace) {
       cat('iter:', iter, '\n')
       cat('dif:', dif, '\n')
@@ -403,18 +401,18 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
   }
   
   #EM over-calling homozygous deletion, switch to lsa
-  idx=which(which.geno.em==1&seglen>10)
+  idx=which(which.geno.em==1&seglen>15)
   if(any(idx)){
-    genotype.em[idx] = "AB"
-    t.em[idx]=2
-    minor.em[idx]=1
-    major.em[idx]=1
-    rhov.em[idx]=NA    
+#     genotype.em[idx] = "AB"
+#     t.em[idx]=2
+#     minor.em[idx]=1
+#     major.em[idx]=1
+#     rhov.em[idx]=NA    
     
-    #genotype.em[idx]=genotype.lsd[idx]
-    #t.em[idx]=t.lsd[idx]
-    #minor.em[idx]=minor.lsd[idx]
-    #major.em[idx]=major.lsd[idx]
+    genotype.em[idx]=genotype.lsd[idx]
+    t.em[idx]=t.lsd[idx]
+    minor.em[idx]=minor.lsd[idx]
+    major.em[idx]=major.lsd[idx]
   }
 
   out1=data.frame(seg,cf.em=rhov.em,tcn.em=major.em+minor.em, lcn.em=minor.em)
