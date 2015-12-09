@@ -90,14 +90,14 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
     
   rhov.lsd[major.lsd==1&minor.lsd==1]=NA
   rhov.lsd[t.lsd==2&rhov.lsd==1]=NA
-  naive=max(by(rhov.lsd[seglen>15],segclust[seglen>15],function(x)mean(x,na.rm=T)),na.rm=T)
+  naive=max(by(rhov.lsd[seglen>35],segclust[seglen>35],function(x)mean(x,na.rm=T)),na.rm=T)
   
   rhov.lsd.subset=rhov.lsd
   rhov.lsd.subset[which.geno.lsd%in%c(5,7,10,11,14,15,NA)]=NA 
   rhov.lsd.subset[t.lsd>6]=NA
-  rhov.lsd.subset[seglen<15]=NA
+  rhov.lsd.subset[seglen<50]=NA
   #rhov.lsd[(major.lsd!=minor.lsd)&minor.lsd!=0]=NA #imbalanced seg has big identifiability issue
-  loh=which(major.lsd %in% c(1,2)& minor.lsd==0 & seglen>15) #use only LOH seg for initial estimate
+  loh=which(major.lsd %in% c(1,2)& minor.lsd==0 & seglen>50) #use only LOH seg for initial estimate
   
   rho=NA
   if(length(loh)>1){
@@ -294,7 +294,7 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
     rhov.long=rhov[seg$segclust]
     which.geno.long=which.geno[seg$segclust] 
     rhov.long[which.geno.long == 4]=NA
-    
+
 #     #EM tend to overfit for homdel
 #     if(sum(which.geno.long == 1,na.rm=T)>0){
 #       idx=which(which.geno.long == 1)
@@ -302,10 +302,10 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
 #       which.geno.long[idx]=which.geno.lsd[idx]
 #     }
     
-    meanrho=max(by(rhov.long[seglen>15],segclust[seglen>15],function(x)mean(x,na.rm=T)),na.rm=T)
+    meanrho=max(by(rhov.long[seglen>35],segclust[seglen>35],function(x)mean(x,na.rm=T)),na.rm=T)
     rhov.long.subset=rhov.long
     rhov.long.subset[which.geno.long %in% c(5,7,10,11,14,15,NA)]=NA #Imbalanced gains have big identifiability issue
-    rhov.long.subset[seglen<15]=NA
+    rhov.long.subset[seglen<50]=NA
     
     #if low purity, assume rhov the same
     #if more than 100 seg give rho estimate, use density to find rho
@@ -321,7 +321,7 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
             if(length(nona)>100){
                rho=find.mode(nona)$rho
             }else{
-              loh=which(major[which.geno.long]>=1 & minor[which.geno.long]==0 & seglen>15)
+              loh=which(major[which.geno.long]>=1 & minor[which.geno.long]==0 & seglen>50)
               rhov.loh=rep(NA,length(rhov.long))
               rhov.loh[loh]=rhov.long[loh]
               if(length(loh)>1 & !all(is.na(loh))){
@@ -334,10 +334,13 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
          }
   
     if(is.na(rho))rho=meanrho
+    if(rho<0.2)rho=naive
+    
     rhov[is.na(rhov)]=rho    
     #constraint: any segment cannot have purity higher than the mode purity 
     rhov[rhov>rho]=rho
     rhov[rhov<0.1]=rho
+    
     
     dif = quantile(abs(rhov-rhov.old),0.9,na.rm=T)
 
@@ -355,11 +358,11 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
   
   rhov.em=rhov[seg$segclust]
   which.geno.em=which.geno[seg$segclust]
-  nas=which(is.na(which.geno.em))
-  if(any(nas)){
-  which.geno.em[nas]=which.geno.lsd[nas]
-  rhov.em[nas]=rhov.lsd[nas]
-  }
+#   nas=which(is.na(which.geno.em))
+#   if(any(nas)){
+#   which.geno.em[nas]=which.geno.lsd[nas]
+#   rhov.em[nas]=rhov.lsd[nas]
+#   }
   
   #no information from A1B1 segments
   rhov.em[which.geno.em==4]=NA
@@ -400,20 +403,20 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
 
   }
   
-  #EM over-calling homozygous deletion, switch to lsa
-  idx=which(which.geno.em==1&seglen>15)
-  if(any(idx)){
+#   #EM over-calling homozygous deletion, switch to lsa
+#   idx=which(which.geno.em==1&seglen>35)
+#   if(any(idx)){
 #     genotype.em[idx] = "AB"
 #     t.em[idx]=2
 #     minor.em[idx]=1
 #     major.em[idx]=1
 #     rhov.em[idx]=NA    
-    
-    genotype.em[idx]=genotype.lsd[idx]
-    t.em[idx]=t.lsd[idx]
-    minor.em[idx]=minor.lsd[idx]
-    major.em[idx]=major.lsd[idx]
-  }
+#     
+#     genotype.em[idx]=genotype.lsd[idx]
+#     t.em[idx]=t.lsd[idx]
+#     minor.em[idx]=minor.lsd[idx]
+#     major.em[idx]=major.lsd[idx]
+#   }
 
   out1=data.frame(seg,cf.em=rhov.em,tcn.em=major.em+minor.em, lcn.em=minor.em)
   out1$tcn.em[is.na(out1$tcn.em)] <- out1$tcn[is.na(out1$tcn.em)]
