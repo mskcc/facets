@@ -427,8 +427,12 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
   
   
   #for male, use the empirical call
-  prop.nhet.chrX=sum(nhet[chr==23])/sum(nmark[chr==23])
-  male=(prop.nhet.chrX<0.02)
+  if(sum(chr==23)>0){
+    prop.nhet.chrX=sum(nhet[chr==23])/sum(nmark[chr==23])
+    male=(prop.nhet.chrX<0.02)
+  }else{
+    male=FALSE
+  }
   
   #normal male X is one copy. No het snps to start with, so don't call minor cn
   if(male){
