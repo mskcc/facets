@@ -121,7 +121,7 @@ findDiploidLogR <- function(out, cnlr) {
         # mix of 2+0 and 1+0 from 1+1 (on same segs) can mimic 3+0 from 2+2
         # that is, it looks like a loss but has a large mafR
         # so allow small % if 1+0 and a slightly bigger % of 3+0
-        if (acn1prop < 0.02 & acn3prop < 0.05) {
+        if (acn1prop < 0.005 & acn3prop < 0.05) {
             # if acn3prop > 0 flag it
             if (acn3prop > 0) 
                 flags <- c(flags, paste("likely mixture of 1+0 & 2+0 in segclust:", paste(out1$segclust[out1$acn==3], collapse=", ")))
