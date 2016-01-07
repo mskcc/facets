@@ -1,33 +1,28 @@
-#input
-#x: output from procSample
-#parameters
-#mu: logR normal mean
-#k: allelic ratio
-#rho: tumor sample purity
-#rhov: vector of cellular freuency of the alteration for each segment
-#pmatrix, posterior probability matrix of dimension nseg (number of segments) by ng (number of genotypes)
-
-emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){  
+#genotype mixture model using EM algorithm to call allele-specific copy number and cellular fraction
+emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){  
   
   jointseg=x$jointseg
   out=x$out
   dipLogR=x$dipLogR
-  jointseg=subset(jointseg,!is.na(cnlr))    
+  seg=out
+  
+  jointseg=subset(jointseg,!is.na(cnlr))  
   logR=jointseg$cnlr 
   logOR=jointseg$valor 
   logORvar=jointseg$lorvar 
   logOR2var=logOR^2/logORvar
-  logORvar.clust=by(logORvar,jointseg$segclust,function(x)mean(x,na.rm=T))
+  logORvar.clust=by(logORvar,jointseg$segclust,function(x)mean(na.omit(x)))
   
   het=jointseg$het
   
-  seg=out  
   nmark=seg$num.mark
   segclust=seg$segclust
-  cnlr.median.clust=by(seg$cnlr.median.clust,segclust,mean)
-  mafR.clust=by(seg$mafR.clust,segclust,mean)
+  cnlr.median.clust=by(seg$cnlr.median,segclust,function(x)mean(na.omit(x)))
+  mafR.clust=by(seg$mafR,segclust,function(x)mean(na.omit(x)))
   segs=rep(1:length(nmark),nmark)  
   nseg=length(nmark)
+  nhet=seg$nhet
+  chr=seg$chrom
   if(nseg>500)stop("Likely hyper-segmented. Increase cval in procSample.")
   
   
@@ -38,7 +33,7 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
   mafR=seg$mafR
   mafR[mafR<0]=0
   seglogr=seg$cnlr.median
-  nclust=max(seg$segclust)
+  nclust=max(segclust)
   
   emflags=NULL
   
@@ -57,14 +52,14 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
   ng=length(genotype)
   n=length(logR)  
     
-  #if no big segment that is imbalanced then outplot diploid genome with purity=1
-  if(max(mafR[seglen > 10], na.rm = T) < 0.05 & max(abs(seglogr)[seglen > 10], na.rm = T)<0.1){
+  #diploid genome with purity=1
+  if(all(seg$cf==1&seg$tcn==2)|max(mafR.clust, na.rm = T) < 0.05){
     rhov.em=rep(1,nseg)
-    major.em=rep(1,nseg); minor.em=rep(1,nseg)
+    t.em=rep(2,nseg); minor.em=rep(1,nseg)
+    minor.em[nhet<min.nhet]=NA
     rho=NA
     gamma=2
-    out1=data.frame(seg,cf.em=rhov.em,tcn.em=major.em+minor.em, lcn.em=minor.em)
-    out1$tcn.em[is.na(out1$tcn.em)] <- out1$tcn[is.na(out1$tcn.em)]
+    out1=data.frame(seg,cf.em=seg$cf,tcn.em=t.em, lcn.em=minor.em)
     emflags=paste(emflags,"Insufficient information. Likely diplod or purity too low.",sep=" ")
     out=list(purity=rho,ploidy=gamma,cncf=out1,emflags=emflags)
     return(out)    
@@ -88,24 +83,25 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
   genotype.lsd[homdel]="0"
   which.geno.lsd=match(genotype.lsd,genotype)
     
-  rhov.lsd[major.lsd==1&minor.lsd==1]=NA
+  rhov.lsd[t.lsd==2&minor.lsd==1]=NA
   rhov.lsd[t.lsd==2&rhov.lsd==1]=NA
+  rhov.lsd[chr>=23&rhov.lsd==1]=NA
   naive=max(by(rhov.lsd[seglen>35],segclust[seglen>35],function(x)mean(x,na.rm=T)),na.rm=T)
   
   rhov.lsd.subset=rhov.lsd
-  rhov.lsd.subset[which.geno.lsd%in%c(5,7,10,11,14,15,NA)]=NA 
+  rhov.lsd.subset[which.geno.lsd%in%c(3,5,7,10,11,14,15,NA)]=NA 
   rhov.lsd.subset[t.lsd>6]=NA
   rhov.lsd.subset[seglen<50]=NA
-  loh=which(major.lsd %in% c(1,2)& minor.lsd==0 & seglen>50) #use only LOH seg for initial estimate
+  loh=which(t.lsd>=1 & minor.lsd==0 & seglen>50) #use only LOH seg for initial estimate
   
   rho=NA
-  if(length(loh)>1){
+  if(length(loh)>2){
     rho=max(by(rhov.lsd[loh],segclust[loh],function(x)mean(x,na.rm=T)),na.rm=T)
   }else{  
     if(length(na.omit(rhov.lsd.subset))>1)rho=max(by(rhov.lsd.subset,segclust,function(x)mean(x,na.rm=T)),na.rm=T)
   }
   
-  if(is.na(rho))rho=naive
+  if(is.na(rho)|rho<0.2)rho=naive
 
   rhov=rhov.lsd   
   rhov[is.na(rhov)]=rho
@@ -117,10 +113,10 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
   rhov0=rhov
   
   lowpur=FALSE
-  # if(rho<0.35){lowpur=TRUE}
-  # if(lowpur){
-  # rhov=rep(rho,nclust)
-  # }
+  #if(rho<0.2){lowpur=TRUE}
+  #if(lowpur){
+  #rhov=rep(rho,nclust)
+  #}
 
   #center logR at diphet
   logR.adj=logR-dipLogR
@@ -169,11 +165,13 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
     logk2=logk^2
     
     #posterior probability matrix
-    pmatrix=NULL
+    #pmatrix=NULL
+    pmatrix=matrix(NA,nrow=nrow(jointseg),ncol=ng)
     loglik=0
     
     clust=rep(segclust,nmark)
-    for(s in 1:nclust){
+    segc=sort(unique(segclust[chr<=23]))
+    for(s in segc){
       idx=which(clust==s)
       x1ij=logR.adj[idx]
       mus=rep(mu[s,],each=length(idx))
@@ -194,8 +192,9 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
         x2ij=rep(mafR.clust[s]/logORvar.clust[s],length(idx))
         lambda=nu/logORvar.clust[s]
         }
-      d2=dchisq(x2ij+1,df=1,ncp=lambda)
-      d2=1/abs(x2ij-lambda)
+      #d2=dchisq(x2ij+1,df=1,ncp=lambda)
+      d2=dchisq(x2ij,df=1,ncp=lambda)
+      d2=1/(abs(x2ij-lambda)+1e-6)
       d2[d2==Inf]=NA
       
       #likelihood
@@ -217,11 +216,11 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
       numerator[het[idx]==0,]=numerator0[het[idx]==0,]
       
       tmp=apply(numerator,1,function(x)x/(sum(x,na.rm=T)+1e-5))
-      pmatrix=rbind(pmatrix,t(tmp))
+      #pmatrix=rbind(pmatrix,t(tmp))
+      pmatrix[idx,]=t(tmp)
       
       #update prior
       prior[s,]=apply(t(tmp),2,function(x)mean(x,na.rm=T))
-      
     }
     
     ########
@@ -232,7 +231,7 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
     rhom=gammam=matrix(NA,nrow=nclust,ncol=ng)
     geno=matrix(0,nrow=nclust,ncol=ng)
     which.geno=posterior=rep(NA,nclust)
-    for(i in 1:nclust){
+    for(i in segc){
     
       idx=which(clust==i)
       idxhet=which(clust==i&het==1)
@@ -247,15 +246,17 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
       
       if(max(prior[i,],na.rm=T)>0.05){   
         
-      #calculate rho for the most likely genotype(s) for segment i
-      #if there more more than one likely candidates save two and pick one with higher CF
-      top2=sort(prior[i,],decreasing=T)[1:2]
-      if(top2[2]>0.05&abs(diff(top2))<0.0001){
-          sump[prior[i,]<quantile(prior[i,],(ng-2)/ng)]=NA
-       }else{
-          sump[prior[i,]<max(prior[i,])]=NA
-       }
-        
+      ##calculate rho for the most likely genotype(s) for segment i
+      ##if there more more than one likely candidates save two and pick one with higher CF
+      #top2=sort(prior[i,],decreasing=T)[1:2]
+      #if(top2[2]>0.05&abs(diff(top2))<0.0001){
+      #    sump[prior[i,]<quantile(prior[i,],(ng-2)/ng)]=NA
+      # }else{
+      #    sump[prior[i,]<max(prior[i,])]=NA
+      # }
+      
+      sump[prior[i,]<max(prior[i,])]=NA
+      
         ##update k
         tmphet=pmatrix[idxhet,,drop=F]
         v1=as.vector((logOR[idxhet]^2-logORvar[idxhet])/logORvar[idxhet])
@@ -269,7 +270,8 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
         khat=exp(sqrt(logk2hat))
         a=(1-khat)/(khat*(minor-1)-(major-1))
         a[abs(a)==Inf]=NA
-        a[a<=0|a>=1]=NA
+        a[a<=0]=NA
+        a[a>1]=1
         
         #CF from logR
         tmp=pmatrix[idx,,drop=F]
@@ -278,7 +280,8 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
         mu.hat=sumdp/sump #mu.hat
         aa=2*(2^mu.hat-1)/(t-2)
         aa[abs(aa)==Inf]=NA
-        aa[aa<=0|aa>=1]=NA
+        aa[aa<=0]=NA
+        aa[aa>1]=1
         
         aaa=pmax(a,aa,na.rm=T)
         #degenerate cases
@@ -288,16 +291,16 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
         #set upper bound at sample rho
         aaa=pmin(aaa,rho)
         
-        #het dip (AB) seg has no information, set CF at a high value less than 1
-        if(any(which(!is.na(sump))==4)){aaa[4]=0.9}
-        
         #uniparental disomy (AA) CF information comes from logOR only.
         
-        #if there are two likely genotype, choose one with higher purity (e.g.,AAB 80% or AAAB 50%)
-        #if the higher CF exceeds sample purity, then the lower CF is the right one
-        if(all(is.na(aaa))){which.geno[i]=which.max(prior[i,])}else{
-          which.geno[i]=ifelse(max(aaa,na.rm=T)<rho,which.max(aaa),which.min(aaa))
-        }
+        ##if there are two likely genotype, choose one with higher purity (e.g.,AAB 80% or AAAB 50%)
+        ##if the higher CF exceeds sample purity, then the lower CF is the right one
+        #if(all(is.na(aaa))){which.geno[i]=which.max(prior[i,])}else{
+        #  which.geno[i]=ifelse(max(aaa,na.rm=T)<rho,which.max(aaa),which.min(aaa))
+        #}
+        
+        which.geno[i]=which.max(prior[i,])
+        
         postprob=pmatrix[idx,which.geno[i]]
         posterior[i]=mean(postprob[postprob>0],na.rm=T)
         
@@ -307,7 +310,11 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
         ss=sqrt(sum(r[,which.geno[i]]^2,na.rm=T)/sum(pmatrix[idx,which.geno[i]])) 
         sigma[i]=ifelse(is.na(ss),0.5,ss)
         
-        aaa[setdiff(1:ng,which.geno[i])]=NA     
+        aaa[setdiff(1:ng,which.geno[i])]=NA  
+        
+        #het dip (AB) seg has no information, set CF at a high value less than 1
+        #if(any(which(!is.na(sump))==4)){aaa[4]=0.9}
+        
         rhom[i,]=aaa 
         
       } #max prior
@@ -318,10 +325,10 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
     rhov=unlist(apply(rhom,1,function(x)ifelse(all(is.na(x)),NA,na.omit(x))))
 
     #Determine sample rho
-    #pick mode closest to 1
     rhov.long=rhov[seg$segclust]
     which.geno.long=which.geno[seg$segclust] 
     rhov.long[which.geno.long == 4]=NA
+    rhov.long[chr>=23]=NA
     
     meanrho=max(by(rhov.long[seglen>35],segclust[seglen>35],function(x)mean(x,na.rm=T)),na.rm=T)
     rhov.long.subset=rhov.long
@@ -335,7 +342,7 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
       rho=naive
       }else{  
        if(lowpur){          
-          rho=max(rhov.long[rhov.long>0.1],na.rm=T)     
+          rho=max(rhov.long,na.rm=T)     
           rhov=rep(rho,nclust)      
         }else{       
             nona=na.omit(rhov.long)        
@@ -378,7 +385,7 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
   #calculate ploidy
   gamma=(2^(-dipLogR)*(2*(1-rho)+2*rho)-2*(1-rho))/rho
   
-  #hybrid: for high copy number (t>6), swicth to lsd estimate
+  #hybrid: for high copy number (t>6), use moment estimates
   seglogr.adj=seg$cnlr.median-dipLogR
   idx=which(seglogr.adj>1.6*rho|is.na(which.geno.em))
   if(any(idx)){
@@ -387,7 +394,7 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
     tt[tt<0]=0 #homdel
     mm=round((tt*maf*rho+(maf-1)*(1-rho))/(rho*(maf+1)),0)
     re=which(mm>tt) #rounding error can cause major>t
-    if(any(re)){mm[re]=tt[re]}    
+    if(any(re)){mm[re]=tt[re]}   
     t.em[idx]=tt
     major.em[idx]=mm
 
@@ -398,20 +405,38 @@ emcncf=function(x,trace=FALSE,unif=FALSE,maxiter=10,eps=1e-3){
   }
   
 
- #EM over-calling homozygous deletion at low cf, switch to lsa
-  idx=which(which.geno.em==1&rhov.em<0.25&seglen>35)
-  if(any(idx)){
-    genotype.em[idx]=genotype.lsd[idx]
-    t.em[idx]=t.lsd[idx]
-    minor.em[idx]=minor.lsd[idx]
-    major.em[idx]=major.lsd[idx]
-    rhov.em[idx]=rhov.lsd[idx]
+#  #EM over-calling homozygous deletion at low cf, switch to lsa
+#   idx=which(which.geno.em==1&rhov.em<0.25&seglen>35)
+#   if(any(idx)){
+#     genotype.em[idx]=genotype.lsd[idx]
+#     t.em[idx]=t.lsd[idx]
+#     minor.em[idx]=minor.lsd[idx]
+#     major.em[idx]=major.lsd[idx]
+#     rhov.em[idx]=rhov.lsd[idx]
+#   }
+  
+  
+  #if het SNPs are too few, not sufficient information to estimate minor cn
+  lownhet=which(nhet<min.nhet)
+  minor.em[lownhet]=NA
+  minor.em[t.em<=1]=0
+
+  #set cf=1 for 2-1 segments (100% nothing)
+  rhov.em[t.em==2&minor.em==1]=1
+  rhov.em[t.em==2&is.na(minor.em)]=1
+  
+  
+  #for male, use the empirical call
+  prop.nhet.chrX=sum(nhet[chr==23])/sum(nmark[chr==23])
+  male=(prop.nhet.chrX<0.02)
+  
+  #normal male X is one copy. No het snps to start with, so don't call minor cn
+  if(male){
+    t.em[chr>=23]=round(t.em[chr>=23]/2,0)
+    minor.em[chr>=23]=NA
   }
   
-  #no information from A1B1 segments
-  rhov.em[major.em==1&minor.em==1]=NA
-  
-  out1=data.frame(seg,cf.em=rhov.em,tcn.em=major.em+minor.em, lcn.em=minor.em)
+  out1=data.frame(seg,cf.em=rhov.em,tcn.em=t.em, lcn.em=minor.em)
 
   if(rho<0.3){emflags=paste(emflags,"Low purity. Calls can be unreliable.",sep=" ")}
 
@@ -450,13 +475,13 @@ plotSampleCNCF=function(x,fit,plotboth=F) {
   
   cncf=fit$cncf
   cncf=subset(cncf,chrom<23)
-     
+  
   dipLogR <- fit$dipLogR
   
   layout(matrix(c(1,1,2,2,3,3,4,4), ncol=1))
   if(plotboth){layout(matrix(c(1,1,2,2,3,3,4,4,5,5,6,6), ncol=1))}
   par(mar=c(0.25, 3, 0.25, 1), mgp=c(2, 0.7, 0),oma = c(3,0, 1.25, 0))
-
+  
   chr=mat$chrom
   len=table(chr)
   altcol=rep(c("light blue","gray"),12)[-c(23:24)]
@@ -474,7 +499,7 @@ plotSampleCNCF=function(x,fit,plotboth=F) {
   plot(mat$valor, pch=".", cex=2.5, col = c("grey","lightblue")[1+rep(cncf$chrom-2*floor(cncf$chrom/2), cncf$num.mark)], ylab="log-odds-ratio",xaxt = "n")
   points(rep(sqrt(abs(cncf$mafR)), cncf$num.mark), pch=".", cex=1, col="brown")
   points(-rep(sqrt(abs(cncf$mafR)), cncf$num.mark), pch=".", cex=1, col="brown")
-    
+  
   plot(rep(cncf$cf.em, cncf$num.mark),pch=".", cex=1, xlab="Chromosome",ylab="Cellular fraction", ylim=c(0,1),xaxt = "n")
   #axis(side=1,at=mid,1:22,cex.axis=1,las=2)
   #axis(side=2,cex=0.8)
@@ -482,7 +507,7 @@ plotSampleCNCF=function(x,fit,plotboth=F) {
   #abline(v=start,lty=3,col="gray")
   #abline(v=end,lty=3,col="gray")
   #abline(h=c(0.2,0.4,0.6,0.8),lty=3,col="gray")
-    
+  
   
   # scale tcn so that very high copy numbers don't take up space
   tcnscaled=cncf$tcn.em
@@ -495,8 +520,8 @@ plotSampleCNCF=function(x,fit,plotboth=F) {
     axis(2,at=0:ub,labels=0:ub)
   }
   if(!plotboth){
-  axis(side=1,at=mid,1:22,cex.axis=1,las=2)
-  mtext(side=1,line=2,"Chromosome",cex=0.8)
+    axis(side=1,at=mid,1:22,cex.axis=1,las=2)
+    mtext(side=1,line=2,"Chromosome",cex=0.8)
   }
   box()
   #abline(v=start,lty=3,col="gray")
@@ -504,30 +529,29 @@ plotSampleCNCF=function(x,fit,plotboth=F) {
   #abline(h=c(0:5,5+(1:35)/3),lty=3,col="gray")
   
   if(plotboth){
-  plot(rep(cncf$cf, cncf$num.mark),pch=".", cex=2, xlab="Chromosome",ylab="Cellular fraction (cncf)", ylim=c(0,1),xaxt = "n")
-  #axis(side=1,at=mid,1:22,cex.axis=1,las=2)
-  #axis(side=2,cex=0.8)
-  #box()
-  #abline(v=start,lty=3,col="gray")
-  #abline(v=end,lty=3,col="gray")
-  #abline(h=c(0.2,0.4,0.6,0.8),lty=3,col="gray")
-  
-  tcnscaled <- cncf$tcn
-  ub=ceiling(max(tcnscaled,na.rm=T))
-  lcnscaled <- cncf$lcn
-  tcnscaled[cncf$tcn > 5 & !is.na(cncf$tcn)] = (5 + (tcnscaled[cncf$tcn > 5& !is.na(cncf$tcn)] -5)/3)
-  lcnscaled[cncf$lcn > 5 & !is.na(cncf$lcn)] = (5 + (lcnscaled[cncf$lcn > 5& !is.na(cncf$lcn)] -5)/3)
-  
-  matplot(cbind(rep(tcnscaled, cncf$num.mark), rep(lcnscaled,cncf$num.mark)-0.1), axes=F,pch=".", cex=3, col=1:2, lwd=1, ylab="Copy number (cncf)", xaxt="n")
-  if(ub>5){axis(2, at=c(0:5,5+(1:(ub-5))/3), labels=0:ub)}else{
-    axis(2,at=0:ub,labels=0:ub)
-  }
-  axis(side=1,at=mid,1:22,cex.axis=1,las=2)
-  box()
-  #abline(v=start,lty=3,col="gray")
-  #abline(v=end,lty=3,col="gray")
-  #abline(h=c(0:5,5+(1:35)/3),lty=3,col="gray")
+    plot(rep(cncf$cf, cncf$num.mark),pch=".", cex=2, xlab="Chromosome",ylab="Cellular fraction (cncf)", ylim=c(0,1),xaxt = "n")
+    #axis(side=1,at=mid,1:22,cex.axis=1,las=2)
+    #axis(side=2,cex=0.8)
+    #box()
+    #abline(v=start,lty=3,col="gray")
+    #abline(v=end,lty=3,col="gray")
+    #abline(h=c(0.2,0.4,0.6,0.8),lty=3,col="gray")
+    
+    tcnscaled <- cncf$tcn
+    ub=ceiling(max(tcnscaled,na.rm=T))
+    lcnscaled <- cncf$lcn
+    tcnscaled[cncf$tcn > 5 & !is.na(cncf$tcn)] = (5 + (tcnscaled[cncf$tcn > 5& !is.na(cncf$tcn)] -5)/3)
+    lcnscaled[cncf$lcn > 5 & !is.na(cncf$lcn)] = (5 + (lcnscaled[cncf$lcn > 5& !is.na(cncf$lcn)] -5)/3)
+    
+    matplot(cbind(rep(tcnscaled, cncf$num.mark), rep(lcnscaled,cncf$num.mark)-0.1), axes=F,pch=".", cex=3, col=1:2, lwd=1, ylab="Copy number (cncf)", xaxt="n")
+    if(ub>5){axis(2, at=c(0:5,5+(1:(ub-5))/3), labels=0:ub)}else{
+      axis(2,at=0:ub,labels=0:ub)
+    }
+    axis(side=1,at=mid,1:22,cex.axis=1,las=2)
+    box()
+    #abline(v=start,lty=3,col="gray")
+    #abline(v=end,lty=3,col="gray")
+    #abline(h=c(0:5,5+(1:35)/3),lty=3,col="gray")
   }  
 }
-
 
