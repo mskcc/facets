@@ -480,7 +480,7 @@ find.mode=function (x)
   out
 }
 
-plotSampleCNCF=function(x,fit,plotboth=F) {
+plotSampleCNCF=function(x,fit,plotboth=FALSE) {
   mat=x$jointseg
   mat=subset(mat,chrom<23)
   

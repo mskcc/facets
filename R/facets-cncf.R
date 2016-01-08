@@ -15,6 +15,18 @@ fitcncf <- function(out, dipLogR=0) {
     cncf$cf <- out1$cf[ii]
     cncf$tcn <- out1$tcn[ii]
     cncf$lcn <- out1$lcn[ii]
+    # revise the copy numbers for X if subject is male
+    ii <- which(cncf$chrom==23)
+    if (length(ii) > 0) {
+        # male if nhets on X chromosome is less than 1% of num.mark
+        if (sum(cncf$nhet[ii])/sum(cncf$num.mark[ii]) < 0.01) {
+            cncf$tcn[ii] <- ceiling(cncf$tcn[ii]/2)
+            cncf$lcn[ii] <- 0
+        }
+    }
+    # if tcn is 0 or 1 lcn has to be zero
+    cncf$lcn[cncf$tcn<=1] <- 0
+    # return result
     cncf
 }
 

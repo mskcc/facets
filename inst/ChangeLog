@@ -1,3 +1,36 @@
+01/08/2016: v0.3.17
+
+  o segments should have 1% of hest for mafR clustering
+  o check for since chrX in cncf
+
+01/07/2016: v0.3.16
+
+  o trimmed fit for emcncf
+
+01/07/2016: v0.3.15
+
+  o add chr X check
+
+01/07/2016: v0.3.14
+
+  o further refinement of emcncf
+
+12/22/2015: v0.3.13
+
+  o refinement of emcncf; update plotSampleCNCF.Rd
+
+12/09/2015: v0.3.12
+
+  o purity optimization edit
+
+12/03/2015: v0.3.11
+
+  o purity optimization take2; update DESCRIPTION
+
+12/02/2015: v0.3.10
+
+  o fixed purity optimization
+
 11/17/2015: v0.3.9
 
   o Bug in winsorized mafR code (median(abs(valor)) instead median(valor))
