@@ -1,3 +1,11 @@
+01/08/2016: v0.3.19
+
+  o some adjustments to cncf so that max fitted cf is 99%
+
+01/08/2016: v0.3.18
+
+  o fixes to emcncf when estimated naive cf is small
+
 01/08/2016: v0.3.17
 
   o segments should have 1% of hest for mafR clustering

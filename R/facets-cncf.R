@@ -22,6 +22,8 @@ fitcncf <- function(out, dipLogR=0) {
         if (sum(cncf$nhet[ii])/sum(cncf$num.mark[ii]) < 0.01) {
             cncf$tcn[ii] <- ceiling(cncf$tcn[ii]/2)
             cncf$lcn[ii] <- 0
+            # set cf to be 1 if tcn==1
+            cncf$cf[ii][cncf$tcn[ii]==1] <- 1
         }
     }
     # if tcn is 0 or 1 lcn has to be zero
@@ -45,7 +47,8 @@ fitcncf0 <- function(out, dipLogR=0) {
                 tcn <- ceiling(ocn)
                 uu <- optcfutil(tcn, ocn, maf)
                 # it distance measure is large - 0.0225 when diff CN of 0.15
-                if (uu[3] > 0.0225) {
+                # make sure the fitted cf is not >0.99
+                if (uu[3] > 0.0225 | uu[2]>0.99) {
                     tcn1 <- tcn+1
                     uu1 <- optcfutil(tcn1, ocn, maf)
                     # if distance measure is reduced by at least 20%
@@ -98,23 +101,23 @@ fitcncf0 <- function(out, dipLogR=0) {
     }
     # merge thc cf levels
     out <- mergecf(out)
-    # now fill in the tcn for clusters with NA for mafR using median cf
+    # now fill in the tcn for clusters with NA for mafR using 3rd quartile cf
     ii <- which(out$cf < 1)
     # don't want to call deletions and amplications in low purity samples
     if (length(ii) > 0) {
-        cfmed <- max(median(rep(out$cf[ii], out$num.mark[ii])), 0.3)
+        cf3q <- max(quantile(rep(out$cf[ii], out$num.mark[ii]), 0.75), 0.3)
     } else {
-        cfmed <- 0.3
+        cf3q <- 0.3
     }
     for(seg in 1:nrow(out)) {
         if (is.na(maf0[seg])) {
             ocn <- ocn0[seg]
-            # divide ocn by cfmed and round it
-            tcn <- round((ocn-2)/cfmed) + 2
+            # divide ocn by cf3q and round it
+            tcn <- round((ocn-2)/cf3q) + 2
             if (tcn < 0) tcn <- 0
             out$tcn[seg] <- tcn
-            # set the segment cf to be cfmed
-            out$cf[seg] <- ifelse (tcn == 2, 1, cfmed)
+            # set the segment cf to be cf3q
+            out$cf[seg] <- cf3q
         }
     }
     out
