@@ -1,8 +1,17 @@
-01/07/2015: v0.3.15
+01/08/2016: v0.3.17
+
+  o segments should have 1% of hest for mafR clustering
+  o check for since chrX in cncf
+
+01/07/2016: v0.3.16
+
+  o trimmed fit for emcncf
+
+01/07/2016: v0.3.15
 
   o add chr X check
 
-01/07/2015: v0.3.14
+01/07/2016: v0.3.14
 
   o further refinement of emcncf
 

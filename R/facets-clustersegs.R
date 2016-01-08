@@ -16,7 +16,7 @@ clustersegs <- function(out, jointseg, min.nhet=10) {
     # observed copy number (ocn) clusters
     ocnclust <- 1:nsegs
     ocnlevels <- out$cnlr.median
-    while (min(diff(ocnlevels)) < 0.04 & length(ocnlevels)>1) {
+    while ((length(ocnlevels) > 1) && (min(diff(ocnlevels)) < 0.04)) {
         j <- which.min(diff(ocnlevels))
         ocnlevels <- ocnlevels[-j]
         ocnclust[ocnclust>j] <- ocnclust[ocnclust>j] - 1
@@ -45,7 +45,8 @@ clustersegs <- function(out, jointseg, min.nhet=10) {
     }
     # loop through ocn clusters
     for(i in unique(ocnclust)) {
-        ii <- ocnclust==i & out$nhet >= min.nhet
+        # segments with at least 10 hets and 2% hets (address male = single X)
+        ii <- ocnclust==i & out$nhet >= min.nhet & out$nhet/out$num.mark > 0.01
         segs <- which(ii)
         # if more than one segment start merging from largest
         if (length(segs) > 1) {
