@@ -109,7 +109,8 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
   #avoid initial value too low
   rhov[rhov<0.1]=rho
   #avoid 1
-  rhov[rhov==1]=rho  
+  rhov[rhov==1]=rho 
+  rhov[nhet<min.nhet]=rho
   rhov=as.vector(by(rhov,segclust,mean))
   rhov0=rhov
   
@@ -425,17 +426,17 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
   #if het SNPs are too few, not sufficient information to estimate minor cn
   lownhet=which(nhet<min.nhet)
   minor.em[lownhet]=NA
-  #minor.em[t.em<=1]=0
+  minor.em[t.em<=1]=0
 
   #set cf=1 for 2-1 segments (100% nothing)
   rhov.em[t.em==2&minor.em==1]=1
-  rhov.em[t.em==2&is.na(minor.em)]=1
+  rhov.em[t.em==2&is.na(minor.em)]=NA
   
   
   #for male, use the empirical call
   if(sum(chr==23)>0){
     prop.nhet.chrX=sum(nhet[chr==23])/sum(nmark[chr==23])
-    male=(prop.nhet.chrX<0.02)
+    male=(prop.nhet.chrX<0.01)
   }else{
     male=FALSE
   }
@@ -444,6 +445,8 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
   if(male){
     t.em[chr>=23]=round(t.em[chr>=23]/2,0)
     minor.em[chr>=23]=NA
+    normalX=which(t.em[chr>=23]==1)
+    if(any(normalX))rhov.em[chr>=23][normalX]=1
   }
   
   out1=data.frame(seg,cf.em=rhov.em,tcn.em=t.em, lcn.em=minor.em)
