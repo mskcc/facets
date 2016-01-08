@@ -23,7 +23,7 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
   nseg=length(nmark)
   nhet=seg$nhet
   chr=seg$chrom
-  if(nseg>500)stop("Likely hyper-segmented. Increase cval in procSample.")
+  #if(nseg>500)stop("Likely hyper-segmented. Increase cval in procSample.")
   
   
   endseq=jointseg[cumsum(nmark),2]
@@ -57,9 +57,10 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
     rhov.em=rep(1,nseg)
     t.em=rep(2,nseg); minor.em=rep(1,nseg)
     minor.em[nhet<min.nhet]=NA
+    rhov.em=rep(1,nseg)
     rho=NA
     gamma=2
-    out1=data.frame(seg,cf.em=seg$cf,tcn.em=t.em, lcn.em=minor.em)
+    out1=data.frame(seg,cf.em=rhov.em,tcn.em=t.em, lcn.em=minor.em)
     emflags=paste(emflags,"Insufficient information. Likely diplod or purity too low.",sep=" ")
     out=list(purity=rho,ploidy=gamma,cncf=out1,emflags=emflags)
     return(out)    
@@ -174,6 +175,10 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
     for(s in segc){
       idx=which(clust==s)
       x1ij=logR.adj[idx]
+      upper=quantile(x1ij,0.95)
+      lower=quantile(x1ij,0.05)
+      x1ij[x1ij>upper]=NA
+      x1ij[x1ij<lower]=NA
       mus=rep(mu[s,],each=length(idx))
       sd=sigma[s]
       if(rhov[s]<0.4){
@@ -222,7 +227,7 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
       #update prior
       prior[s,]=apply(t(tmp),2,function(x)mean(x,na.rm=T))
     }
-    
+
     ########
     #M-step#
     ########
@@ -272,6 +277,7 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
         a[abs(a)==Inf]=NA
         a[a<=0]=NA
         a[a>1]=1
+        if(all(nhet[segclust==i]<min.nhet))a=rep(NA,ng)
         
         #CF from logR
         tmp=pmatrix[idx,,drop=F]
@@ -419,7 +425,7 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
   #if het SNPs are too few, not sufficient information to estimate minor cn
   lownhet=which(nhet<min.nhet)
   minor.em[lownhet]=NA
-  minor.em[t.em<=1]=0
+  #minor.em[t.em<=1]=0
 
   #set cf=1 for 2-1 segments (100% nothing)
   rhov.em[t.em==2&minor.em==1]=1
