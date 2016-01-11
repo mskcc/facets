@@ -114,6 +114,20 @@ findDiploidLogR <- function(out, cnlr) {
                          }, dipLogR[1], out1))
         # print(out2)
         out1$acn <- apply(out2[,2*(1:3), drop=FALSE], 1, which.min)
+        # check that mafR is consistent with the optimal cf for fitted acn
+        ii <- which(out1$acn==2)
+        if (length(ii) > 0) {
+            # these are the fitted cf values
+            cf0 <- out2[ii, 3]
+            # cf estimated from mafR = log(1/(1-cf))^2  if
+            # dipLogR[1] is diploid and segment is 1+0
+            cf1 <- 1-exp(-sqrt(out1$mafR[ii]))
+            # if segments where cf1 > cf0 + 0.1 has >5% of snps
+            # cf1 > cf0+0.1 because mafR can be low with 1+0 & 2+0 mixture
+            if (sum(out1$num.mark[ii][cf1 > cf0+0.1])/nsnps > 0.05) {
+                not1plus1 <- TRUE
+            }
+        }
         # proportion of genome that fits 1+0, 2+0 & 3+0
         acn1prop <- sum(out1$num.mark[out1$acn == 1])/nsnps
         acn2prop <- sum(out1$num.mark[out1$acn == 2])/nsnps
@@ -121,7 +135,7 @@ findDiploidLogR <- function(out, cnlr) {
         # mix of 2+0 and 1+0 from 1+1 (on same segs) can mimic 3+0 from 2+2
         # that is, it looks like a loss but has a large mafR
         # so allow small % if 1+0 and a slightly bigger % of 3+0
-        if (acn1prop < 0.005 & acn3prop < 0.05) {
+        if (!not1plus1 & acn1prop < 0.005 & acn3prop < 0.05) {
             # if acn3prop > 0 flag it
             if (acn3prop > 0) 
                 flags <- c(flags, paste("likely mixture of 1+0 & 2+0 in segclust:", paste(out1$segclust[out1$acn==3], collapse=", ")))
