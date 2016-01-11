@@ -113,6 +113,7 @@ findDiploidLogR <- function(out, cnlr) {
         # cflor > cflr+0.1 because mafR can be low with 1+0 & 2+0 mixture
         if (sum(out1$num.mark[cflor > cflr+0.1])/nsnps > 0.05) {
             not1plus1 <- TRUE
+            flags <- c(flags, paste("mafR larger than expected if", dipLogR[1], "is diploid level"))
         }
         # assume dipLogR[1] is clonal 2+2 get acn consistent with cnlr, mafR
         # search acn from 3+0, 2+0 & 1+0; as 2+1 looks like 2+0 with lower cf
