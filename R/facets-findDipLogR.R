@@ -109,7 +109,11 @@ findDiploidLogR <- function(out, cnlr) {
         # assume dipLogR[1] is 1+1. compute cf using logR and logOR data
         cflr <- pmin(2 - 2^(1 + out1$cnlr.median - dipLogR[1]), 1)
         cflor <- 1 - exp(-sqrt(pmax(0,out1$mafR)))
-        if (sum(out1$num.mark[cf1or > cflr+0.1])/nsnps > 0.05) not1plus1 <- TRUE
+        # if segments where cflor > cflr + 0.1 has >5% of snps
+        # cflor > cflr+0.1 because mafR can be low with 1+0 & 2+0 mixture
+        if (sum(out1$num.mark[cf1or > cflr+0.1])/nsnps > 0.05) {
+            not1plus1 <- TRUE
+        }
         # assume dipLogR[1] is clonal 2+2 get acn consistent with cnlr, mafR
         # search acn from 3+0, 2+0 & 1+0; as 2+1 looks like 2+0 with lower cf
         # 0+0 has balanced alleles and so won't be in lsegs
