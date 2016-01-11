@@ -111,7 +111,7 @@ findDiploidLogR <- function(out, cnlr) {
         cflor <- 1 - exp(-sqrt(pmax(0,out1$mafR)))
         # if segments where cflor > cflr + 0.1 has >5% of snps
         # cflor > cflr+0.1 because mafR can be low with 1+0 & 2+0 mixture
-        if (sum(out1$num.mark[cf1or > cflr+0.1])/nsnps > 0.05) {
+        if (sum(out1$num.mark[cflor > cflr+0.1])/nsnps > 0.05) {
             not1plus1 <- TRUE
         }
         # assume dipLogR[1] is clonal 2+2 get acn consistent with cnlr, mafR
