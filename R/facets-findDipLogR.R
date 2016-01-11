@@ -106,6 +106,10 @@ findDiploidLogR <- function(out, cnlr) {
     if (length(lsegs) > 0) {
         # check if dipLogR[1] is 1+1 or 2+2
         out1 <- out1[lsegs,]
+        # assume dipLogR[1] is 1+1. compute cf using logR and logOR data
+        cflr <- pmin(2 - 2^(1 + out1$cnlr.median - dipLogR[1]), 1)
+        cflor <- 1 - exp(-sqrt(pmax(0,out1$mafR)))
+        if (sum(out1$num.mark[cf1 > cf0+0.1])/nsnps > 0.05) not1plus1 <- TRUE
         # assume dipLogR[1] is clonal 2+2 get acn consistent with cnlr, mafR
         # search acn from 3+0, 2+0 & 1+0; as 2+1 looks like 2+0 with lower cf
         # 0+0 has balanced alleles and so won't be in lsegs
@@ -114,20 +118,6 @@ findDiploidLogR <- function(out, cnlr) {
                          }, dipLogR[1], out1))
         # print(out2)
         out1$acn <- apply(out2[,2*(1:3), drop=FALSE], 1, which.min)
-        # check that mafR is consistent with the optimal cf for fitted acn
-        ii <- which(out1$acn==2)
-        if (length(ii) > 0) {
-            # these are the fitted cf values
-            cf0 <- out2[ii, 3]
-            # cf estimated from mafR = log(1/(1-cf))^2  if
-            # dipLogR[1] is diploid and segment is 1+0
-            cf1 <- 1-exp(-sqrt(out1$mafR[ii]))
-            # if segments where cf1 > cf0 + 0.1 has >5% of snps
-            # cf1 > cf0+0.1 because mafR can be low with 1+0 & 2+0 mixture
-            if (sum(out1$num.mark[ii][cf1 > cf0+0.1])/nsnps > 0.05) {
-                not1plus1 <- TRUE
-            }
-        }
         # proportion of genome that fits 1+0, 2+0 & 3+0
         acn1prop <- sum(out1$num.mark[out1$acn == 1])/nsnps
         acn2prop <- sum(out1$num.mark[out1$acn == 2])/nsnps
