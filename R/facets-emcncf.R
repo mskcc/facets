@@ -87,7 +87,13 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
   rhov.lsd[t.lsd==2&minor.lsd==1]=NA
   rhov.lsd[t.lsd==2&rhov.lsd==1]=NA
   rhov.lsd[chr>=23&rhov.lsd==1]=NA
-  naive=max(by(rhov.lsd[seglen>35],segclust[seglen>35],function(x)mean(x,na.rm=T)),na.rm=T)
+  
+  #if(!all(is.na(rhov.lsd[seglen>35]))){
+  #  naive=max(by(rhov.lsd[seglen>35],segclust[seglen>35],function(x)mean(x,na.rm=T)),na.rm=T)
+  #}else{
+  naive=quantile(rhov.lsd,prob=0.75,na.rm=T)
+  #}
+
   
   rhov.lsd.subset=rhov.lsd
   rhov.lsd.subset[which.geno.lsd%in%c(3,5,7,10,11,14,15,NA)]=NA 
@@ -337,7 +343,12 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
     rhov.long[which.geno.long == 4]=NA
     rhov.long[chr>=23]=NA
     
-    meanrho=max(by(rhov.long[seglen>35],segclust[seglen>35],function(x)mean(x,na.rm=T)),na.rm=T)
+    if(sum(!is.na(rhov.long[seglen>35]))>1){
+     meanrho=max(by(rhov.long[seglen>35],segclust[seglen>35],function(x)mean(x,na.rm=T)),na.rm=T)
+    }else{
+     meanrho=quantile(rhov.long,prob=0.75,na.rm=T) #if no big segments, probably very noisy sample or over-segemnted. can't estimate rho accurately, just take upper quatile
+    }
+    
     rhov.long.subset=rhov.long
     rhov.long.subset[which.geno.long %in% c(5,7,10,11,14,15,NA)]=NA #Imbalanced gains have big identifiability issue
     rhov.long.subset[seglen<50]=NA
