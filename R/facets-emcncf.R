@@ -53,7 +53,7 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
   n=length(logR)  
     
   #diploid genome with purity=1
-  if(all(seg$cf==1&seg$tcn==2)|max(mafR.clust, na.rm = T) < 0.05){
+  if(all(seg$cf[seg$chrom<23]==1&seg$tcn[seg$chrom<23]==2)|max(mafR.clust[seg$chrom<23], na.rm = T) < 0.05){
     rhov.em=rep(1,nseg)
     t.em=rep(2,nseg); minor.em=rep(1,nseg)
     minor.em[nhet<min.nhet]=NA
@@ -62,7 +62,7 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
     gamma=2
     out1=data.frame(seg,cf.em=rhov.em,tcn.em=t.em, lcn.em=minor.em)
     emflags=paste(emflags,"Insufficient information. Likely diplod or purity too low.",sep=" ")
-    out=list(purity=rho,ploidy=gamma,cncf=out1,emflags=emflags)
+    out=list(purity=rho,ploidy=gamma,dipLogR=dipLogR,start=startseq,end=endseq,seglen=seglen,cncf=out1, emflags=emflags)
     return(out)    
     stop("Insufficient information",call.=F)
   }
