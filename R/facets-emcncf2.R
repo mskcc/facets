@@ -172,12 +172,11 @@ emcncf2=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10, maxk=5,eps=1e-
   cond6=(abs(seglogr.clust.adj)>0.15|mafR.clust>0.05)
   refit=which(cond1&cond2&cond3&!cond4&cond5&cond6)
   
-  difrho=abs(max(rhov0[refit],na.rm=T)-rho)
-  
   #recursively identify poor fits and fit additional subclonal clusters up to 4
   if(em.out$rho>0.4&any(refit)){
   nclone=2
   dif=refit
+  difrho=abs(max(rhov0[refit],na.rm=T)-rho)
   while(any(refit)&any(dif)&difrho>0.1&nclone<maxk){
 
   refit.old=refit
