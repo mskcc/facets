@@ -150,7 +150,7 @@ emcncf2=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10, maxk=5,eps=1e-
   rho.clust=rep(1,nclust)
   rhov=rep(rho,nclust)
   cat("fitting 1 clonal cluster ...",'\n')
-  em.out=onepass(x=x,trace=trace,unif=unif,maxiter=10,min.nhet=min.nhet,eps=eps,rho.clust=rho.clust,rho=rho,rhov=rhov,prior=prior, posterior=posterior, sigma=sigma)
+  em.out=onepass(x=x,trace=trace,unif=unif,maxiter=5,min.nhet=min.nhet,eps=eps,rho.clust=rho.clust,rho=rho,rhov=rhov,prior=prior, posterior=posterior, sigma=sigma)
   which.geno=em.out$which.geno
   posterior=em.out$posterior
   threshold=max(posterior[seglen.clust>10],na.rm=T)
