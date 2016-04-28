@@ -205,7 +205,7 @@ emcncf2=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10, maxk=5,eps=1e-
 
   #set smaller threshold for posterior prob difference to have sufficient sensitivity
   cond1=(threshold-posterior)>0.05
-  cond2=abs(rhov0-min(rhos))>0.1
+  cond2=abs(rhov0-rhov1)>0.1
   cond4=(which.geno%in%ub)
   refit=which(cond1&cond2&cond3&!cond4&cond5&cond6)
   dif=setdiff(refit.old,refit)
