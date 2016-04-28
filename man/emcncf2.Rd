@@ -6,7 +6,7 @@
   Uses estimates based on the cnlr.median and mafR as initial values for the EM iteration.
 } 
 \usage{
-  emcncf2(x, trace=FALSE, unif=FALSE, min.nhet=15, maxiter=10, eps=1e-3)
+  emcncf2(x, trace=FALSE, unif=FALSE, min.nhet=15, maxiter=10, maxk=5, eps=1e-3)
 }
 \arguments{
   \item{x}{the output from procSample. This function uses the elements

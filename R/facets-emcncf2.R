@@ -1,5 +1,5 @@
 #genotype mixture model using EM algorithm to call allele-specific copy number and cellular fraction
-emcncf2=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10, maxk=5,eps=1e-4){  
+emcncf2=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10, maxk=5,eps=1e-3){  
   
   jointseg=x$jointseg
   out=x$out
@@ -150,7 +150,7 @@ emcncf2=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10, maxk=5,eps=1e-
   rho.clust=rep(1,nclust)
   rhov=rep(rho,nclust)
   cat("fitting 1 clonal cluster ...",'\n')
-  em.out=onepass(x=x,trace=trace,unif=unif,maxiter=5,min.nhet=min.nhet,eps=eps,rho.clust=rho.clust,rho=rho,rhov=rhov,prior=prior, posterior=posterior, sigma=sigma)
+  em.out=onepass(x=x,trace=trace,unif=unif,maxiter=10,min.nhet=min.nhet,eps=eps,rho.clust=rho.clust,rho=rho,rhov=rhov,prior=prior, posterior=posterior, sigma=sigma)
   which.geno=em.out$which.geno
   posterior=em.out$posterior
   threshold=max(posterior[seglen.clust>10],na.rm=T)
@@ -175,7 +175,7 @@ emcncf2=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10, maxk=5,eps=1e-
   difrho=abs(max(rhov0[refit],na.rm=T)-rho)
   
   #recursively identify poor fits and fit additional subclonal clusters up to 4
-  if(em.out$rho>0.4){
+  if(em.out$rho>0.4&any(refit)){
   nclone=2
   dif=refit
   while(any(refit)&any(dif)&difrho>0.1&nclone<maxk){
@@ -510,25 +510,4 @@ onepass=function(x, trace, unif, rho, rhov, prior, posterior, sigma, min.nhet, r
 }
 
 
-###find mode####
-find.mode=function (x) 
-{
-  den = density(na.omit(x),n=length(x))
-  y = den$y
-  y[y < 0.001] = 0
-  rho = den$x[which.max(y)]
-  difseq = rle(sign(diff(y)))
-  nmodes = length(difseq$lengths)/2
-  len = cumsum(difseq$lengths)
-  modes.pos = len[which(difseq$values == 1)] + 1
-  modes = y[modes.pos]
-  idx = order(modes, decreasing = T)
-  signodes = modes.pos[which(modes > 1.5)]
-  if (length(signodes) >= 2) {
-    #rho = max(den$x[modes.pos[idx]],na.rm=T)
-    rho = max(den$x[signodes],na.rm=T)
-  }
-  out = list(rho = rho, nmodes = nmodes)
-  out
-}
 
