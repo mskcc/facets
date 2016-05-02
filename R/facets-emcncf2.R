@@ -28,6 +28,7 @@ emcncf2=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10, maxk=5,eps=1e-
   segs=rep(1:length(nmark),nmark)  
   nseg=length(nmark)
   nhet=seg$nhet
+  nhet.clust=by(nhet,segclust,mean)
   chr=seg$chrom
   chr.clust=by(chr,segclust,mean)
   
@@ -148,21 +149,26 @@ emcncf2=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10, maxk=5,eps=1e-
   
   #fit a single clonal cluster
   rho.clust=rep(1,nclust)
-  rhov=rep(rho,nclust)
+  rhov=rep(rho+0.05,nclust)
   cat("fitting 1 clonal cluster ...",'\n')
-  em.out=onepass(x=x,trace=trace,unif=unif,maxiter=5,min.nhet=min.nhet,eps=eps,rho.clust=rho.clust,rho=rho,rhov=rhov,prior=prior, posterior=posterior, sigma=sigma)
+  em.out=onepass(x=x,trace=trace,unif=unif,maxiter=10,min.nhet=min.nhet,eps=eps,rho.clust=rho.clust,rho=rho,rhov=rhov,prior=prior, posterior=posterior, sigma=sigma)
   which.geno=em.out$which.geno
   posterior=em.out$posterior
   threshold=max(posterior[seglen.clust>10],na.rm=T)
   rhov=em.out$rhov
   rho=em.out$rho
+  segclust.rhov=em.out$segclust.cf
+  segclust.rhov[is.na(segclust.rhov)]=rho
+  segclust.rhov[segclust.rhov>rho]=rho
+
   
   #Identify poor fits by posterior probability to refit as subclonal cluster. 
   cond1=(threshold-posterior)>0.05
   #The cf has to be sufficiently different to allow a subclonal cluster fit
-  cond2=abs(rhov0-rho)>0.1
+  cond2=abs(segclust.rhov-rho)>0.05
   #Don't allow subclonal fit of tiny segments
-  cond3=seglen.clust>1
+  #cond3=seglen.clust>1
+  cond3=(nmark.clust>50&nhet.clust>15)
   #Genotypes with identifiability issue don't allow subclonal option
   ub=c(10,15)
   cond4=(which.geno%in%ub)
@@ -170,14 +176,15 @@ emcncf2=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10, maxk=5,eps=1e-
   cond5=chr.clust<23
   #Exclude small changes
   cond6=(abs(seglogr.clust.adj)>0.15|mafR.clust>0.05)
-  refit=which(cond1&cond2&cond3&!cond4&cond5&cond6)
+  refit=which(cond2&cond3&!cond4&cond5&cond6)
   
   #recursively identify poor fits and fit additional subclonal clusters up to 4
   if(em.out$rho>0.4&any(refit)){
   nclone=2
   dif=refit
-  difrho=abs(max(rhov0[refit],na.rm=T)-rho)
-  while(any(refit)&any(dif)&difrho>0.1&nclone<maxk){
+  difrho=abs(max(segclust.rhov[refit],na.rm=T)-rho)
+  
+  while(any(refit)&any(dif)&difrho>0.05&nclone<maxk){
 
   refit.old=refit
   rho.clust.start=rho.clust
@@ -187,7 +194,7 @@ emcncf2=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10, maxk=5,eps=1e-
   #ncat=length(table(rho.clust))
   #if(max(rho.clust)>ncat)rho.clust[rho.clust>1]=rho.clust[rho.clust>1]-1
   
-  rhos=by(rep(rhov0,as.vector(nmark.clust)),rep(rho.clust.start,as.vector(nmark.clust)),function(x)mean(x,na.rm=T))
+  rhos=by(rep(segclust.rhov,as.vector(nmark.clust)),rep(rho.clust.start,as.vector(nmark.clust)),function(x)mean(x,na.rm=T))
   rhov.start=rhos[rho.clust.start]
   rhov.start=as.vector(rhov.start)
 
@@ -202,16 +209,20 @@ emcncf2=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10, maxk=5,eps=1e-
   rhov1=em.out$rhov
   rho1=em.out$rho
   rhos1=by(rep(rhov1,as.vector(nmark.clust)),rep(em.out$rho.clust,as.vector(nmark.clust)),function(x)mean(x,na.rm=T))
-
+  
+  segclust.rhov=em.out$segclust.cf
+  segclust.rhov[is.na(segclust.rhov)]=rho1
+  segclust.rhov[segclust.rhov>rho1]=rho1
+  
   #set smaller threshold for posterior prob difference to have sufficient sensitivity
   cond1=(threshold-posterior)>0.05
-  cond2=abs(rhov0-rhov1)>0.1
+  cond2=abs(segclust.rhov-rhov1)>0.05
   cond4=(which.geno%in%ub)
-  refit=which(cond1&cond2&cond3&!cond4&cond5&cond6)
+  refit=which(cond2&cond3&!cond4&cond5&cond6)
   dif=setdiff(refit.old,refit)
   difrho=min(abs(mean(rhov1[refit.old],na.rm=T)-rhos1[-nclone]))
   
-  if(difrho>0.1){
+  if(difrho>0.05){
     cat("fitting",nclone,"clonal clusters ...",'\n')
     rhov=rhov1
     rho=rho1
@@ -234,7 +245,16 @@ emcncf2=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10, maxk=5,eps=1e-
   major.em=major[which.geno.em]
   minor.em=minor[which.geno.em]
   
-  clonal.cluster=rho.clust[segclust]
+  clevel=unique(rhov.em)
+  clevel=clevel[!is.na(clevel)&clevel!=1]
+  corder=rank(-clevel)
+  names(corder)=clevel
+  
+  clonal.cluster=corder[as.character(rhov.em)]
+  clonal.cluster[is.na(rhov.em)]=NA
+  clonal.cluster[which.geno.em==4]=1
+  
+  #clonal.cluster=rho.clust[segclust]
   
   #calculate ploidy
   gamma=(2^(-dipLogR)*(2*(1-rho)+2*rho)-2*(1-rho))/rho
@@ -286,6 +306,8 @@ emcncf2=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10, maxk=5,eps=1e-
     normalX=which(t.em[chr>=23]==1)
     if(any(normalX))rhov.em[chr>=23][normalX]=1
   }
+  
+  
   
   out1=data.frame(seg,start=startseq,end=endseq, cf.em=rhov.em,tcn.em=t.em, lcn.em=minor.em, clonal.cluster=clonal.cluster)
 
@@ -448,7 +470,7 @@ onepass=function(x, trace, unif, rho, rhov, prior, posterior, sigma, min.nhet, r
       aa[aa<=0]=NA
       aa[aa>1]=1
       
-      aaa=pmax(a,aa,na.rm=T)
+      aaa=pmin(a,aa,na.rm=T)
       #degenerate cases
       #homozygous deletion (0) and balanced gain (AABB, AAABBB), maf=0.5, purity information comes from logr only
       aaa[c(1,8,13)]=aa[c(1,8,13)]  
@@ -479,6 +501,7 @@ onepass=function(x, trace, unif, rho, rhov, prior, posterior, sigma, min.nhet, r
 
     #for segments noninformative for purity, plug in sample purity
     rhov=unlist(apply(rhom,1,function(x)ifelse(all(is.na(x)),NA,na.omit(x))))
+    segclust.cf=rhov
 
     rhos=by(rep(rhov,as.vector(nmark.clust)),rep(rho.clust,as.vector(nmark.clust)),function(x)mean(x,na.rm=T))
     rhov=rhos[rho.clust]
@@ -502,7 +525,7 @@ onepass=function(x, trace, unif, rho, rhov, prior, posterior, sigma, min.nhet, r
     
   }
   
-  out=list(posterior=posterior, which.geno=which.geno, rho=rho, rhov=rhov, rho.clust=rho.clust)
+  out=list(posterior=posterior, which.geno=which.geno, rho=rho, rhov=rhov, segclust.cf=segclust.cf, rho.clust=rho.clust)
   
   return(out)
   
