@@ -281,15 +281,18 @@ emcncf2=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,difcf=0.05,maxk
   
   clonal.cluster[which.geno.em==4]=1
   
+  
   #if het SNPs are too few, not sufficient information to estimate minor cn
   lownhet=which(nhet<min.nhet)
   minor.em[lownhet]=NA
   minor.em[t.em<=1]=0
+  
 
   #set cf=1 for 2-1 segments (100% nothing)
   rhov.em[t.em==2&minor.em==1]=1
   rhov.em[t.em==2&is.na(minor.em)]=NA
-  
+  clonal.cluster[t.em==2&is.na(minor.em)]=NA
+  clonal.cluster[chr==23]=NA
   
   #for male, use the empirical call
   if(sum(chr==23)>0){
@@ -309,7 +312,7 @@ emcncf2=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,difcf=0.05,maxk
   
   
   
-  out1=data.frame(seg,start=startseq,end=endseq, cf.em=rhov.em,tcn.em=t.em, lcn.em=minor.em, clonal.cluster=clonal.cluster)
+  out1=data.frame(seg[,1:9],start=startseq,end=endseq, cf.em=rhov.em,tcn.em=t.em, lcn.em=minor.em, clonal.cluster=clonal.cluster)
 
   if(rho<0.3){emflags=paste(emflags,"Low purity. Calls can be unreliable.",sep=" ")}
 
