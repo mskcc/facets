@@ -1,5 +1,5 @@
 #genotype mixture model using EM algorithm to call allele-specific copy number and cellular fraction
-emcncf2=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10, maxk=5,eps=1e-3){  
+emcncf2=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,difcf=0.05,maxk=5,eps=1e-3){  
   
   jointseg=x$jointseg
   out=x$out
@@ -165,7 +165,7 @@ emcncf2=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10, maxk=5,eps=1e-
   #Identify poor fits by posterior probability to refit as subclonal cluster. 
   cond1=(threshold-posterior)>0.05
   #The cf has to be sufficiently different to allow a subclonal cluster fit
-  cond2=abs(segclust.rhov-rho)>0.05
+  cond2=abs(segclust.rhov-rho)>difcf
   #Don't allow subclonal fit of tiny segments
   #cond3=seglen.clust>1
   cond3=(nmark.clust>50&nhet.clust>15)
@@ -184,7 +184,7 @@ emcncf2=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10, maxk=5,eps=1e-
   dif=refit
   difrho=abs(max(segclust.rhov[refit],na.rm=T)-rho)
   
-  while(any(refit)&any(dif)&difrho>0.05&nclone<maxk){
+  while(any(refit)&any(dif)&difrho>difcf&nclone<maxk){
 
   refit.old=refit
   rho.clust.start=rho.clust
@@ -216,13 +216,13 @@ emcncf2=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10, maxk=5,eps=1e-
   
   #set smaller threshold for posterior prob difference to have sufficient sensitivity
   cond1=(threshold-posterior)>0.05
-  cond2=abs(segclust.rhov-rhov1)>0.05
+  cond2=abs(segclust.rhov-rhov1)>difcf
   cond4=(which.geno%in%ub)
   refit=which(cond2&cond3&!cond4&cond5&cond6)
   dif=setdiff(refit.old,refit)
   difrho=min(abs(mean(rhov1[refit.old],na.rm=T)-rhos1[-nclone]))
   
-  if(difrho>0.05){
+  if(difrho>difcf){
     cat("fitting",nclone,"clonal clusters ...",'\n')
     rhov=rhov1
     rho=rho1

@@ -6,7 +6,7 @@
   Uses estimates based on the cnlr.median and mafR as initial values for the EM iteration.
 } 
 \usage{
-  emcncf2(x, trace=FALSE, unif=FALSE, min.nhet=15, maxiter=10, maxk=5, eps=1e-3)
+  emcncf2(x, trace=FALSE, unif=FALSE, min.nhet=15, maxiter=10, difcf=0.05, maxk=5, eps=1e-3)
 }
 \arguments{
   \item{x}{the output from procSample. This function uses the elements
@@ -16,6 +16,7 @@
     clusteredcncf values}
   \item{min.nhet}{minimum number of heterozygote snps in a segment used to call minor cn}
   \item{maxiter}{maximum number of EM iterations}
+  \item{difcf}{the minimal difference between segment cluster specific cellular fraction estimate and clonally constrained estimate for declaring candidate subclonal events}
   \item{maxk}{maximum number of clonal and subclonal clusters allowed for the fit}
   \item{eps}{the convergence threshold}
 }
