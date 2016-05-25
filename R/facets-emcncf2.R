@@ -71,9 +71,10 @@ emcncf2=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,difcf=0.05,maxk
     rhov.em=rep(1,nseg)
     rho=NA
     gamma=2
-    out1=data.frame(seg,cf.em=rhov.em,tcn.em=t.em, lcn.em=minor.em)
+    #out1=data.frame(seg,cf.em=rhov.em,tcn.em=t.em, lcn.em=minor.em)
+    out1=data.frame(seg[,1:9],start=startseq,end=endseq,cf.em=rhov.em,tcn.em=t.em,lcn.em=minor.em)
     emflags=paste(emflags,"Insufficient information. Likely diplod or purity too low.",sep=" ")
-    out=list(purity=rho,ploidy=gamma,dipLogR=dipLogR,start=startseq,end=endseq,seglen=seglen,cncf=out1, emflags=emflags)
+    out=list(purity=rho,ploidy=gamma,dipLogR=dipLogR,cncf=out1, emflags=emflags)
     return(out)    
     stop("Insufficient information",call.=F)
   }
@@ -316,7 +317,7 @@ emcncf2=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,difcf=0.05,maxk
 
   if(rho<0.3){emflags=paste(emflags,"Low purity. Calls can be unreliable.",sep=" ")}
 
-  out=list(purity=rho,ploidy=gamma,dipLogR=dipLogR,start=startseq,end=endseq,seglen=seglen,cncf=out1, emflags=emflags)
+  out=list(purity=rho,ploidy=gamma,dipLogR=dipLogR,cncf=out1, emflags=emflags)
   
   return(out)
   
