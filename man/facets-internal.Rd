@@ -11,6 +11,7 @@
 \alias{clustersegs}
 \alias{hg19gcpct}
 \alias{gcpctdb}
+\alias{onepass}
 \alias{find.mode}
 \alias{findDiploidLogR}
 \alias{km2class}
@@ -35,6 +36,7 @@ prune.cpt.tree(seg.tree, cval=25)
 segsnps(mat, cval=25, hetscale = FALSE)
 clustersegs(out, jointseg, min.nhet=10)
 find.mode(x)
+onepass(x, trace, unif, rho, rhov, prior, posterior, sigma, min.nhet, rho.clust, maxiter, eps)
 data(hg19gcpct)
 findDiploidLogR(out, cnlr)
 km2class(cnlr.med, num.mark)
