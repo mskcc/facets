@@ -1,3 +1,15 @@
+06/15/2016: v0.5.1
+
+  o added ndepthmax to allow for high coverage samples
+  o fixed ChrX=23 coding in cncf & emcncf to handle mouse (chrX=20)
+
+06/03/2016: v0.5.0
+
+  o this is a major revision with changes to the interface.
+  o versions through 0.3.30 were released with bug fixes
+  o reading of count matrix is done in a separate function
+  o plotSample is versatile and plotSampleCNCF removed
+
 01/11/2016: v0.3.20
 
   o findDiploidLogR fixed to account for 2+2 states at 2 cnlr levels

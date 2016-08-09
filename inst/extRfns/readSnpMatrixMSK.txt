@@ -1,0 +1,5 @@
+Use this R function to process read count files created by either the perl code
+Venkat Seshan (type vpl) or Nick Socci's two counters. Type "ns1" has 22
+columns which are ACGT counts on positive and negative strands while "ns2" has
+just 8. The former counts the reads where as the latter the fragments
+(overlapping read pairs are not counted twice).

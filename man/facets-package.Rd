@@ -3,38 +3,24 @@
 \alias{facets}
 \docType{package}
 \title{
-  Segments genome based on SNP read counts from DNAseq
+  \packageTitle{facets}
 }
 \description{
-More about what it does (maybe more than one line)
-~~ A concise (1-5 lines) description of the package ~~
+  \packageDescription{facets}
 }
 \details{
-\tabular{ll}{
-Package: \tab facets\cr
-Type: \tab Package\cr
-Version: \tab 0.1.0\cr
-Date: \tab 2015-05-04\cr
-License: \tab GPL (>= 2)\cr
-}
-~~ An overview of how to use the package, including the most important ~~
-~~ functions ~~
+  FACETS stands for Fraction and Allelic Copy number Estimation from
+  Tumor/normal Sequencing. It uses high coverage next generation
+  sequencing data (whole exome or targeted) to estimate the total and
+  integer allele specific copy numbers as well as the tumor purity and
+  ploidy. The methodology is described in the reference paper.
 }
 \author{
-Venkatraman E. Seshan
+\packageAuthor{facets}
 
-Maintainer: Venkatraman E. Seshan <seshanv@mskcc.org>
+Maintainer: \packageMaintainer{facets}
 }
 \references{
-~~ Literature or other references for background information ~~
+  \url{http://biostats.bepress.com/mskccbiostat/paper29/}
 }
-%~~ Optionally other standard keywords, one per line, from file KEYWORDS in ~~
-%~~ the R documentation directory ~~
-\keyword{ package }
-\seealso{
-%~~ Optional links to other man pages, e.g. ~~
-%~~ \code{\link[<pkg>:<pkg>-package]{<pkg>}} ~~
-}
-\examples{
-%% ~~ simple examples of the most important functions ~~
-}
+\keyword{package}

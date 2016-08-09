@@ -1,5 +1,5 @@
 # fitting copy number and cellular fractions (replaces clusteredcncf)
-fitcncf <- function(out, dipLogR=0) {
+fitcncf <- function(out, dipLogR=0, nX=23) {
     # save the original out
     cncf <- out
     # get the segclust version of out
@@ -16,7 +16,7 @@ fitcncf <- function(out, dipLogR=0) {
     cncf$tcn <- out1$tcn[ii]
     cncf$lcn <- out1$lcn[ii]
     # revise the copy numbers for X if subject is male
-    ii <- which(cncf$chrom==23)
+    ii <- which(cncf$chrom==nX)
     if (length(ii) > 0) {
         # male if nhets on X chromosome is less than 1% of num.mark
         if (sum(cncf$nhet[ii])/sum(cncf$num.mark[ii]) < 0.01) {

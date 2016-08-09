@@ -4,6 +4,7 @@ emcncf2=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,difcf=0.05,maxk
   jointseg=x$jointseg
   out=x$out
   dipLogR=x$dipLogR
+  nX=x$nX
   seg=out
   
   jointseg=subset(jointseg,!is.na(cnlr))  
@@ -64,7 +65,7 @@ emcncf2=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,difcf=0.05,maxk
   n=length(logR)  
   
   #diploid genome check 
-  if(all(seg$cf[seg$chrom<23]==1&seg$tcn[seg$chrom<23]==2)|max(mafR.clust[seg$chrom<23], na.rm = T) < 0.05){
+  if(all(seg$cf[seg$chrom<nX]==1&seg$tcn[seg$chrom<nX]==2)|max(mafR.clust[seg$chrom<nX], na.rm = T) < 0.05){
     rhov.em=rep(1,nseg)
     t.em=rep(2,nseg); minor.em=rep(1,nseg)
     minor.em[nhet<min.nhet]=NA
@@ -98,7 +99,7 @@ emcncf2=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,difcf=0.05,maxk
   
   rhov.lsd[t.lsd==2&minor.lsd==1]=NA
   rhov.lsd[t.lsd==2&rhov.lsd==1]=NA
-  rhov.lsd[chr>=23&rhov.lsd==1]=NA
+  rhov.lsd[chr>=nX&rhov.lsd==1]=NA
   
   naive=quantile(rhov.lsd,prob=0.75,na.rm=T)
   
@@ -174,7 +175,7 @@ emcncf2=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,difcf=0.05,maxk
   ub=c(10,15)
   cond4=(which.geno%in%ub)
   #Exclude sex chromosome
-  cond5=chr.clust<23
+  cond5=chr.clust<nX
   #Exclude small changes
   cond6=(abs(seglogr.clust.adj)>0.15|mafR.clust>0.05)
   refit=which(cond2&cond3&!cond4&cond5&cond6)
@@ -293,11 +294,11 @@ emcncf2=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,difcf=0.05,maxk
   rhov.em[t.em==2&minor.em==1]=1
   rhov.em[t.em==2&is.na(minor.em)]=NA
   clonal.cluster[t.em==2&is.na(minor.em)]=NA
-  clonal.cluster[chr==23]=NA
+  clonal.cluster[chr==nX]=NA
   
   #for male, use the empirical call
-  if(sum(chr==23)>0){
-    prop.nhet.chrX=sum(nhet[chr==23])/sum(nmark[chr==23])
+  if(sum(chr==nX)>0){
+    prop.nhet.chrX=sum(nhet[chr==nX])/sum(nmark[chr==nX])
     male=(prop.nhet.chrX<0.01)
   }else{
     male=FALSE
@@ -305,10 +306,10 @@ emcncf2=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,difcf=0.05,maxk
   
   #normal male X is one copy. No het snps to start with, so don't call minor cn
   if(male){
-    t.em[chr>=23]=round(t.em[chr>=23]/2,0)
-    minor.em[chr>=23]=NA
-    normalX=which(t.em[chr>=23]==1)
-    if(any(normalX))rhov.em[chr>=23][normalX]=1
+    t.em[chr>=nX]=round(t.em[chr>=nX]/2,0)
+    minor.em[chr>=nX]=NA
+    normalX=which(t.em[chr>=nX]==1)
+    if(any(normalX))rhov.em[chr>=nX][normalX]=1
   }
   
   
@@ -366,7 +367,7 @@ onepass=function(x, trace, unif, rho, rhov, prior, posterior, sigma, min.nhet, r
     loglik=0
     
     clust=rep(segclust,nmark)
-    segc=sort(unique(segclust[chr<=23]))
+    segc=sort(unique(segclust[chr<=nX]))
     for(s in segc){
       idx=which(clust==s)
       x1ij=logR.adj[idx]

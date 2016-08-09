@@ -1,5 +1,5 @@
 useDynLib(facets)
 import(stats,graphics)
-importFrom("utils", "data")
-importFrom(data.table, fread)
-exportPattern("^[[:alpha:]]+")
+importFrom("pctGCdata", "getGCpct")
+importFrom("grDevices", "colorRampPalette")
+export("readSnpMatrix", "preProcSample", "procSample", "emcncf", "emcncf2", "plotSample")

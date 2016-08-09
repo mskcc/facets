@@ -5,18 +5,22 @@
   Processes a snp read count matrix and generates a segmentation tree
 }
 \usage{
-  preProcSample(filename, ndepth=35, het.thresh=0.25, snp.nbhd=250,
-                cval=25, chromlevels=c(1:22,"X"), hetscale=TRUE,
-                unmatched=FALSE)
+  preProcSample(rcmat, ndepth=35, het.thresh=0.25, snp.nbhd=250,
+                cval=25, gbuild=c("hg19", "hg18", "mm9", "mm10"),
+                hetscale=TRUE, unmatched=FALSE, ndepthmax=1000)
 }
 \arguments{
-  \item{filename}{input matrix of read depths and variant allele frequencies}
+  \item{rcmat}{data frame with 6 required columns: \code{Chrom},
+    \code{Pos}, \code{NOR.DP}, \code{NOR.RD}, \code{TUM.DP} and
+    \code{TUM.RD}. Additional variables are ignored.}
   \item{ndepth}{minimum normal sample depth to keep}
   \item{het.thresh}{vaf threshold to call a SNP heterozygous}
   \item{snp.nbhd}{window size}
   \item{cval}{critical value for segmentation}
-  \item{chromlevels}{names of chromosomes. Chromosomes will be ordered
-    in the order given. Useful for non-human genome.}
+  \item{gbuild}{genome build used for the alignment of the genome.
+    Default value is human genome build hg19. Other possibilities are
+    hg18 for human and mm9 & mm10 for mouse. Chromosomes used for
+    analysis are \code{1-22, X} for humans and \code{1-19} for mouse.}
   \item{hetscale}{logical variable to indicate if logOR should get more
     weight in the test statistics for segmentation and clustering. Usually
     only 10\% of snps are hets and hetscale gives the logOR contribution
@@ -24,6 +28,9 @@
   \item{unmatched}{indicator of whether the normal sample is unmatched.
     When this is TRUE hets are called using tumor reads only and logOR
     calculations are different. Use het.thresh = 0.1 or lower when TRUE.}
+  \item{ndepthmax}{loci for which normal coverage exceeds this number
+    (default is 1000) will be discarded as PCR duplicates. Fof high
+    coverage sample increase this and ndepth commensurately.}
 }
 \value{
   A list consisting of three elements:

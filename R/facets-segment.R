@@ -139,3 +139,42 @@ segsnps <- function(mat, cval=25, hetscale=FALSE) {
     # return matrix
     list(seg.tree=seg.tree, jointseg=mat0, hscl=hscl)
 }
+
+# segment summary
+jointsegsummary <- function(jointseg) {
+    # remove snps with NA in segs (due to NA in cnlr)
+    jointseg <- jointseg[is.finite(jointseg$seg),]
+    # initialize output table
+    nsegs <- max(jointseg$seg)
+    out <- as.data.frame(matrix(0, nsegs, 6))
+    names(out) <- c("chrom","seg","num.mark","nhet","cnlr.median","mafR")
+    # function to estimate maf from valor and lorvar
+    maffun <- function(x) {
+        # occasional extreme valor can screw maf. so winsorize the maf
+        valor <- abs(x$valor)
+        lorvar <- x$lorvar
+        # extreme large values
+        valor.thresh <- median(valor) + 3*sqrt(quantile(lorvar, 0.8, type=1))
+        valor[valor > valor.thresh] <- valor.thresh
+        # extreme small values (not likely)
+        valor.thresh <- median(valor) - 3*sqrt(quantile(lorvar, 0.8, type=1))
+        valor[valor < valor.thresh] <- valor.thresh
+        sum(((valor)^2 - lorvar)/lorvar)/sum(1/lorvar)
+    }
+    # loop over the segments
+    for(seg in 1:nsegs) {
+        zz <- jointseg[jointseg$seg==seg, c("chrom","cnlr","het","valor","lorvar")]
+        zz1 <- zz[zz$het==1,]
+        # output
+        out[seg,1] <- zz$chrom[1]
+        out[seg,2] <- seg
+        out[seg,3] <- nrow(zz)
+        out[seg,4] <- nrow(zz1)
+        out[seg,5] <- median(zz$cnlr)
+        if (out[seg,4] > 0) {
+            # weighted average of squared log-odds ratio minus variance
+            out[seg,6] <- maffun(zz1)
+        }
+    }
+    out
+}

@@ -4,6 +4,7 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
   jointseg=x$jointseg
   out=x$out
   dipLogR=x$dipLogR
+  nX=x$nX
   seg=out
   
   jointseg=subset(jointseg,!is.na(cnlr))  
@@ -53,7 +54,7 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
   n=length(logR)  
     
   #diploid genome with purity=1
-  if(all(seg$cf[seg$chrom<23]==1&seg$tcn[seg$chrom<23]==2)|max(mafR.clust[seg$chrom<23], na.rm = T) < 0.05){
+  if(all(seg$cf[seg$chrom<nX]==1&seg$tcn[seg$chrom<nX]==2)|max(mafR.clust[seg$chrom<nX], na.rm = T) < 0.05){
     rhov.em=rep(1,nseg)
     t.em=rep(2,nseg); minor.em=rep(1,nseg)
     minor.em[nhet<min.nhet]=NA
@@ -87,7 +88,7 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
     
   rhov.lsd[t.lsd==2&minor.lsd==1]=NA
   rhov.lsd[t.lsd==2&rhov.lsd==1]=NA
-  rhov.lsd[chr>=23&rhov.lsd==1]=NA
+  rhov.lsd[chr>=nX&rhov.lsd==1]=NA
   
   #if(!all(is.na(rhov.lsd[seglen>35]))){
   #  naive=max(by(rhov.lsd[seglen>35],segclust[seglen>35],function(x)mean(x,na.rm=T)),na.rm=T)
@@ -179,7 +180,7 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
     loglik=0
     
     clust=rep(segclust,nmark)
-    segc=sort(unique(segclust[chr<=23]))
+    segc=sort(unique(segclust[chr<=nX]))
     for(s in segc){
       idx=which(clust==s)
       x1ij=logR.adj[idx]
@@ -342,7 +343,7 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
     rhov.long=rhov[seg$segclust]
     which.geno.long=which.geno[seg$segclust] 
     rhov.long[which.geno.long == 4]=NA
-    rhov.long[chr>=23]=NA
+    rhov.long[chr>=nX]=NA
     
     if(sum(!is.na(rhov.long[seglen>35]))>1){
      meanrho=max(by(rhov.long[seglen>35],segclust[seglen>35],function(x)mean(x,na.rm=T)),na.rm=T)
@@ -446,8 +447,8 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
   
   
   #for male, use the empirical call
-  if(sum(chr==23)>0){
-    prop.nhet.chrX=sum(nhet[chr==23])/sum(nmark[chr==23])
+  if(sum(chr==nX)>0){
+    prop.nhet.chrX=sum(nhet[chr==nX])/sum(nmark[chr==nX])
     male=(prop.nhet.chrX<0.01)
   }else{
     male=FALSE
@@ -455,10 +456,10 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
   
   #normal male X is one copy. No het snps to start with, so don't call minor cn
   if(male){
-    t.em[chr>=23]=round(t.em[chr>=23]/2,0)
-    minor.em[chr>=23]=NA
-    normalX=which(t.em[chr>=23]==1)
-    if(any(normalX))rhov.em[chr>=23][normalX]=1
+    t.em[chr>=nX]=round(t.em[chr>=nX]/2,0)
+    minor.em[chr>=nX]=NA
+    normalX=which(t.em[chr>=nX]==1)
+    if(any(normalX))rhov.em[chr>=nX][normalX]=1
   }
   
   #out1=data.frame(seg,cf.em=rhov.em,tcn.em=t.em, lcn.em=minor.em)
@@ -492,92 +493,3 @@ find.mode=function (x)
   out = list(rho = rho, nmodes = nmodes)
   out
 }
-
-plotSampleCNCF=function(x,fit,plotboth=FALSE) {
-  mat=x$jointseg
-  mat=subset(mat,chrom<23)
-  
-  out=subset(x$out,chrom<23)
-  
-  cncf=fit$cncf
-  cncf=subset(cncf,chrom<23)
-  
-  dipLogR <- fit$dipLogR
-  
-  layout(matrix(c(1,1,2,2,3,3,4,4), ncol=1))
-  if(plotboth){layout(matrix(c(1,1,2,2,3,3,4,4,5,5,6,6), ncol=1))}
-  par(mar=c(0.25, 3, 0.25, 1), mgp=c(2, 0.7, 0),oma = c(3,0, 1.25, 0))
-  
-  chr=mat$chrom
-  len=table(chr)
-  altcol=rep(c("light blue","gray"),12)[-c(23:24)]
-  chr.col=rep(altcol,len)
-  nmark=cncf$num.mark
-  tmp=cumsum(len)
-  start=c(1,tmp[-22]+1)
-  end=tmp
-  mid=start+len/2
-  
-  plot(mat$cnlr, pch=".",cex=2.5, ylim=c(-3,3), col = c("grey","lightblue")[1+rep(cncf$chrom-2*floor(cncf$chrom/2), cncf$num.mark)], ylab="log-ratio",xaxt = "n")
-  abline(h=dipLogR, col="magenta4")
-  points(rep(cncf$cnlr.median, cncf$num.mark), pch=".", cex=1, col="brown")
-  
-  plot(mat$valor, pch=".", cex=2.5, col = c("grey","lightblue")[1+rep(cncf$chrom-2*floor(cncf$chrom/2), cncf$num.mark)], ylab="log-odds-ratio",xaxt = "n")
-  points(rep(sqrt(abs(cncf$mafR)), cncf$num.mark), pch=".", cex=1, col="brown")
-  points(-rep(sqrt(abs(cncf$mafR)), cncf$num.mark), pch=".", cex=1, col="brown")
-  
-  plot(rep(cncf$cf.em, cncf$num.mark),pch=".", cex=1, xlab="Chromosome",ylab="Cellular fraction", ylim=c(0,1),xaxt = "n")
-  #axis(side=1,at=mid,1:22,cex.axis=1,las=2)
-  #axis(side=2,cex=0.8)
-  #box()
-  #abline(v=start,lty=3,col="gray")
-  #abline(v=end,lty=3,col="gray")
-  #abline(h=c(0.2,0.4,0.6,0.8),lty=3,col="gray")
-  
-  
-  # scale tcn so that very high copy numbers don't take up space
-  tcnscaled=cncf$tcn.em
-  ub=ceiling(max(tcnscaled,na.rm=T))
-  lcnscaled=cncf$lcn.em
-  tcnscaled[cncf$tcn.em > 5 & !is.na(cncf$tcn.em)] = (5 + (tcnscaled[cncf$tcn.em > 5& !is.na(cncf$tcn.em)] -5)/3)
-  lcnscaled[cncf$lcn.em > 5 & !is.na(cncf$lcn.em)] = (5 + (lcnscaled[cncf$lcn.em > 5& !is.na(cncf$lcn.em)] -5)/3)
-  matplot(cbind(rep(tcnscaled, cncf$num.mark),rep(lcnscaled,cncf$num.mark)-0.1), axes=F,pch=".", cex=1, col=1:2, lwd=1, ylab="Copy number",xaxt="n")
-  if(ub>5){axis(2, at=c(0:5,5+(1:(ub-5))/3), labels=0:ub)}else{
-    axis(2,at=0:ub,labels=0:ub)
-  }
-  if(!plotboth){
-    axis(side=1,at=mid,1:22,cex.axis=1,las=2)
-    mtext(side=1,line=2,"Chromosome",cex=0.8)
-  }
-  box()
-  #abline(v=start,lty=3,col="gray")
-  #abline(v=end,lty=3,col="gray")
-  #abline(h=c(0:5,5+(1:35)/3),lty=3,col="gray")
-  
-  if(plotboth){
-    plot(rep(cncf$cf, cncf$num.mark),pch=".", cex=2, xlab="Chromosome",ylab="Cellular fraction (cncf)", ylim=c(0,1),xaxt = "n")
-    #axis(side=1,at=mid,1:22,cex.axis=1,las=2)
-    #axis(side=2,cex=0.8)
-    #box()
-    #abline(v=start,lty=3,col="gray")
-    #abline(v=end,lty=3,col="gray")
-    #abline(h=c(0.2,0.4,0.6,0.8),lty=3,col="gray")
-    
-    tcnscaled <- cncf$tcn
-    ub=ceiling(max(tcnscaled,na.rm=T))
-    lcnscaled <- cncf$lcn
-    tcnscaled[cncf$tcn > 5 & !is.na(cncf$tcn)] = (5 + (tcnscaled[cncf$tcn > 5& !is.na(cncf$tcn)] -5)/3)
-    lcnscaled[cncf$lcn > 5 & !is.na(cncf$lcn)] = (5 + (lcnscaled[cncf$lcn > 5& !is.na(cncf$lcn)] -5)/3)
-    
-    matplot(cbind(rep(tcnscaled, cncf$num.mark), rep(lcnscaled,cncf$num.mark)-0.1), axes=F,pch=".", cex=3, col=1:2, lwd=1, ylab="Copy number (cncf)", xaxt="n")
-    if(ub>5){axis(2, at=c(0:5,5+(1:(ub-5))/3), labels=0:ub)}else{
-      axis(2,at=0:ub,labels=0:ub)
-    }
-    axis(side=1,at=mid,1:22,cex.axis=1,las=2)
-    box()
-    #abline(v=start,lty=3,col="gray")
-    #abline(v=end,lty=3,col="gray")
-    #abline(h=c(0:5,5+(1:35)/3),lty=3,col="gray")
-  }  
-}
-
