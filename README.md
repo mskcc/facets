@@ -3,20 +3,21 @@ Algorithm to implement Fraction and Allele specific Copy number Estimate from Tu
 
 ## NOTES
 
-### 2015_07_03 (version 0.2.0)
+### 2016_08_08 (version 0.5.2)
 
 The new version estimates the log-ratio level corresponding to the diploid state. It is embedded into the procSample call.
 In terms of using the package you can now do:
 
 ```R
-xx <- preProcSample(...)
+rcmat <- readSnpMatrix(filename, ...)
+xx <- preProcSample(rcmat, ...)
 # specify cval you like
 oo <- procSample(xx, cval = 300)
 ```
 
 And go straight to
 ```R
-emcncf(oo)
+emcncf2(oo)
 ```
 
 The output of procSample now has 4 elements:
