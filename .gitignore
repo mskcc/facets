@@ -2,3 +2,5 @@
 *.so
 src/symbols.rds
 .Rproj.user
+.Rhistory
+facets.Rproj

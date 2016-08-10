@@ -46,7 +46,7 @@ scanSnp <- function(maploc, het, nbhd) {
 }
 
 # obtain logR and logOR from read counts and GC-correct logR
-counts2logROR <- function(mat, unmatched=FALSE, f=0.2) {
+counts2logROR <- function(mat, gbuild, unmatched=FALSE, f=0.2) {
     out <- mat[mat$keep==1,]
     # gc percentage
     out$gcpct <- rep(NA_real_, nrow(out))
@@ -55,7 +55,7 @@ counts2logROR <- function(mat, unmatched=FALSE, f=0.2) {
     nchr <- max(mat$chrom) # IMPACT doesn't have X so only 22
     for (i in 1:nchr) {
         ii <- out$chrom==i
-        out$gcpct[ii] <- getGCpct(i, out$maploc[ii])
+        out$gcpct[ii] <- getGCpct(i, out$maploc[ii], gbuild)
     }
     ##### log-ratio with gc correction and maf log-odds ratio steps
     chrom <- out$chrom

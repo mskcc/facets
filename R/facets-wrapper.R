@@ -21,7 +21,7 @@ preProcSample <- function(rcmat, ndepth=35, het.thresh=0.25, snp.nbhd=250, cval=
     if (gbuild %in% c("hg19", "hg18")) nX  <- 23
     if (gbuild %in% c("mm9", "mm10")) nX  <- 20
     pmat <- procSnps(rcmat, ndepth, het.thresh, snp.nbhd, gbuild, unmatched, ndepthmax)
-    dmat <- counts2logROR(pmat[pmat$rCountT>0,], unmatched)
+    dmat <- counts2logROR(pmat[pmat$rCountT>0,], gbuild, unmatched)
     tmp <- segsnps(dmat, cval, hetscale)
     out <- list(pmat=pmat, gbuild=gbuild, nX=nX)
     c(out, tmp)

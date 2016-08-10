@@ -1,3 +1,10 @@
+08/10/2016: v0.5.2
+
+  o fixed the bug in counts2logROR that did not pass gbuild
+  o included snp-pileup code in inst/extcode directory. This
+    can be compiled (needs htslib) to create a stand-alone
+    read counts snpmatrix file.
+
 06/15/2016: v0.5.1
 
   o added ndepthmax to allow for high coverage samples
