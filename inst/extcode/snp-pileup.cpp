@@ -503,7 +503,7 @@ int program_main(arguments arguments) {
 		fclose(output_file);
 	}
 
-    return 0;
+	return 0; // added return code for successful completion 
 }
 
 int main(int argc, char ** argv) {
