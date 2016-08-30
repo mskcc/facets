@@ -429,7 +429,7 @@ int program_main(arguments arguments) {
 						output << f_info[i].errors;
 						output << ",";
 						output << f_info[i].deletions;
-					}	
+					}
 					output << "\n";
 					(arguments.outFunc)(arguments, output.str(), output_file);
 				}
@@ -502,6 +502,8 @@ int program_main(arguments arguments) {
 	} else {
 		fclose(output_file);
 	}
+
+    return 0;
 }
 
 int main(int argc, char ** argv) {
