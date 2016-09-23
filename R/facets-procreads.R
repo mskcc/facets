@@ -1,7 +1,7 @@
 # heterozygous and keep flags of the SNPs
 procSnps <- function(rcmat, ndepth=35, het.thresh=0.25, snp.nbhd=250, gbuild="hg19", unmatched=FALSE, ndepthmax=1000) {
     # keep only chromsomes 1-22 & X for humans and 1-19, X for mice
-    if (gbuild %in% c("hg19", "hg18")) {
+    if (gbuild %in% c("hg19", "hg38", "hg18")) {
         chromlevels <- c(1:22,"X")
     } else {
         chromlevels <- c(1:19,"X")
@@ -54,8 +54,11 @@ counts2logROR <- function(mat, gbuild, unmatched=FALSE, f=0.2) {
     # loop thru chromosomes
     nchr <- max(mat$chrom) # IMPACT doesn't have X so only 22
     for (i in 1:nchr) {
-        ii <- out$chrom==i
-        out$gcpct[ii] <- getGCpct(i, out$maploc[ii], gbuild)
+        ii <- which(out$chrom==i)
+        # allow for chromosomes with no SNPs i.e. not targeted
+        if (length(ii) > 0) {
+            out$gcpct[ii] <- getGCpct(i, out$maploc[ii], gbuild)
+        }
     }
     ##### log-ratio with gc correction and maf log-odds ratio steps
     chrom <- out$chrom

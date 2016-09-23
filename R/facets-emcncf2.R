@@ -7,7 +7,7 @@ emcncf2=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,difcf=0.05,maxk
   nX=x$nX
   seg=out
   
-  jointseg=subset(jointseg,!is.na(cnlr))  
+  jointseg=subset(jointseg,!is.na(jointseg$cnlr))  
   logR=jointseg$cnlr 
   #center logR at dipLogR
   logR.adj=logR-dipLogR
@@ -326,7 +326,10 @@ emcncf2=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,difcf=0.05,maxk
 
 #####onepass###
 onepass=function(x, trace, unif, rho, rhov, prior, posterior, sigma, min.nhet, rho.clust, maxiter, eps){  
-  
+
+  # added to make R CMD check stop complaining - didn't work
+  # globalVariables(c("chr", "cnlr.median.clust", "dipLogR", "het", "jointseg", "logOR", "logOR2var", "logORvar", "logORvar.clust", "logR.adj", "mafR.clust", "major", "minor", "nX", "nclust", "ng", "nhet", "nmark", "nmark.clust", "segclust"))
+
   dif=1
   iter=0      
   
@@ -535,6 +538,3 @@ onepass=function(x, trace, unif, rho, rhov, prior, posterior, sigma, min.nhet, r
   return(out)
   
 }
-
-
-

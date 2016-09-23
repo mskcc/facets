@@ -15,11 +15,11 @@ readSnpMatrix <- function(filename, skip=0L, err.thresh=0, del.thresh=0) {
     rcmat
 }
 
-preProcSample <- function(rcmat, ndepth=35, het.thresh=0.25, snp.nbhd=250, cval=25, gbuild=c("hg19", "hg18", "mm9", "mm10"), hetscale=TRUE, unmatched=FALSE, ndepthmax=1000) {
+preProcSample <- function(rcmat, ndepth=35, het.thresh=0.25, snp.nbhd=250, cval=25, gbuild=c("hg19", "hg38", "hg18", "mm9", "mm10"), hetscale=TRUE, unmatched=FALSE, ndepthmax=1000) {
     gbuild <- match.arg(gbuild)
     # integer value for chromosome X depends on the genome
-    if (gbuild %in% c("hg19", "hg18")) nX  <- 23
-    if (gbuild %in% c("mm9", "mm10")) nX  <- 20
+    if (gbuild %in% c("hg19", "hg38", "hg18")) nX <- 23
+    if (gbuild %in% c("mm9", "mm10")) nX <- 20
     pmat <- procSnps(rcmat, ndepth, het.thresh, snp.nbhd, gbuild, unmatched, ndepthmax)
     dmat <- counts2logROR(pmat[pmat$rCountT>0,], gbuild, unmatched)
     tmp <- segsnps(dmat, cval, hetscale)
@@ -38,13 +38,17 @@ procSample <- function(x, cval=150, min.nhet=15, dipLogR=NULL) {
     # jointseg etc
     jseg <- x$jointseg
     jseg <- jseg[is.finite(jseg$cnlr),]
-    # number of chromosomes
-    nchr <- length(x$seg.tree)
+    # chromosomes with data and their counts
+    chrs <- x$chromlevels
+    nchr <- length(chrs)
+    # get chromlevels from chrs
+    if (x$gbuild %in% c("hg19", "hg38", "hg18")) chromlevels <- c(1:22,"X")[chrs]
+    if (x$gbuild %in% c("mm9", "mm10")) chromlevels <- c(1:19,"X")[chrs]
     # get the segment summary for the fit in seg.tree
     nsegs <- 0
     for (i in 1:nchr) {
         seg.widths <- diff(c(0, sort(unique(x$seg.tree[[i]][,3]))))
-        jseg$seg[jseg$chrom==i] <- nsegs + rep(1:length(seg.widths), seg.widths)
+        jseg$seg[jseg$chrom==chrs[i]] <- nsegs + rep(1:length(seg.widths), seg.widths)
         nsegs <- nsegs + length(seg.widths)
     }
     focalout <- jointsegsummary(jseg)
@@ -59,7 +63,7 @@ procSample <- function(x, cval=150, min.nhet=15, dipLogR=NULL) {
     nsegs <- 0
     for (i in 1:nchr) {
         seg.widths <- diff(prune.cpt.tree(x$seg.tree[[i]], cval))
-        jseg$seg[jseg$chrom==i] <- nsegs + rep(1:length(seg.widths), seg.widths)
+        jseg$seg[jseg$chrom==chrs[i]] <- nsegs + rep(1:length(seg.widths), seg.widths)
         nsegs <- nsegs + length(seg.widths)
     }
     # adding the focal change segments - need a jump at the beginning and end
@@ -85,10 +89,10 @@ procSample <- function(x, cval=150, min.nhet=15, dipLogR=NULL) {
         oo$dipLogR <- dipLogR
     }
     out <- fitcncf(out, oo$dipLogR, nX)
-    c(list(jointseg=jseg, out=out, nX=nX), oo[-1])
+    c(list(jointseg=jseg, out=out, nX=nX, chromlevels=chromlevels), oo[-1])
 }
 
-plotSample <- function(x, emfit=NULL, clustered=FALSE, chromlevels=c(1:22,"X"), plot.type=c("em","naive","both","none"), sname=NULL) {
+plotSample <- function(x, emfit=NULL, clustered=FALSE, plot.type=c("em","naive","both","none"), sname=NULL) {
     def.par <- par(no.readonly = TRUE) # save default, for resetting...
     # plot.type
     plot.type <- match.arg(plot.type)
@@ -165,16 +169,12 @@ plotSample <- function(x, emfit=NULL, clustered=FALSE, chromlevels=c(1:22,"X"), 
         cfcol <- cfpalette[round(10*out$cf.em+0.501)]
         rect(segstart, 0, segend, 1, col=cfcol, border=NA)
     }
-    # now add the chromosome ticks on x-axis 
-    if (missing(chromlevels)) { # human genome
-        if (length(nn) == 23) { # chromsome X is present
-            axis(labels=c(1:22,"X"), side=1, at=(nn+c(0,nn[-23]))/2, cex=0.65)
-        } else { # IMPACT assay X not present
-            axis(labels=1:22, side=1, at=(nn+c(0,nn[-22]))/2, cex=0.65)
-        }
-    } else {
-        axis(labels=chromlevels, side=1, at=(nn+c(0,nn[-length(nn)]))/2, cex=0.65)
-    }
+    
+    # now add the chromosome ticks on x-axis
+    chromlevels <- x$chromlevels
+    # just make sure chromlevels actually exists
+    if (is.null(chromlevels)) chromlevels <- 1:length(nn)
+    axis(labels=chromlevels, side=1, at=(nn+c(0,nn[-length(nn)]))/2, cex=0.65)
     mtext(side=1, line=1.75, "Chromosome", cex=0.8)
     if (!missing(sname)) mtext(sname, side=3, line=0, outer=TRUE, cex=0.8)
     par(def.par)  #- reset to default

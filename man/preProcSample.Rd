@@ -6,7 +6,7 @@
 }
 \usage{
   preProcSample(rcmat, ndepth=35, het.thresh=0.25, snp.nbhd=250,
-                cval=25, gbuild=c("hg19", "hg18", "mm9", "mm10"),
+                cval=25, gbuild=c("hg19", "hg38", "hg18", "mm9", "mm10"),
                 hetscale=TRUE, unmatched=FALSE, ndepthmax=1000)
 }
 \arguments{
@@ -19,7 +19,7 @@
   \item{cval}{critical value for segmentation}
   \item{gbuild}{genome build used for the alignment of the genome.
     Default value is human genome build hg19. Other possibilities are
-    hg18 for human and mm9 & mm10 for mouse. Chromosomes used for
+    hg38 & hg18 for human and mm9 & mm10 for mouse. Chromosomes used for
     analysis are \code{1-22, X} for humans and \code{1-19} for mouse.}
   \item{hetscale}{logical variable to indicate if logOR should get more
     weight in the test statistics for segmentation and clustering. Usually

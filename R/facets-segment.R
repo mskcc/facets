@@ -120,24 +120,31 @@ segsnps <- function(mat, cval=25, hetscale=FALSE) {
     mat$seg <- rep(NA_real_, nrow(mat))
     # loop over chromosomes
     nchr <- max(mat$chrom) # IMPACT doesn't have X so only 22
+    # possible chromosomes
+    chrs <- 1:nchr
     # initialize segmentation tree
     seg.tree <- list()
+    l <- 0 # initialize index for chromosomes with data
     for(i in 1:nchr) {
         genomdat <- as.matrix(mat[mat$chrom==i, c("cnlr","valor","het")])
-        if (nrow(genomdat) == 0) stop("chr", i, " has ZERO snps")
-        # fit segment tree
-        tmp <- fit.cpt.tree(genomdat, cval=cval, hscl=hscl)
-        seg.tree[[i]] <- tmp$seg.tree
-        # segment indicator
-        seg.widths <- diff(tmp$seg.ends)
-        mat$seg[mat[,1]==i] <- rep(1:length(seg.widths), seg.widths)
+        if (nrow(genomdat) == 0) {
+            chrs[i] <- NA
+        } else {
+            l <- l + 1 # new chromosome with data
+            # fit segment tree
+            tmp <- fit.cpt.tree(genomdat, cval=cval, hscl=hscl)
+            seg.tree[[l]] <- tmp$seg.tree
+            # segment indicator
+            seg.widths <- diff(tmp$seg.ends)
+            mat$seg[mat$chrom==i] <- rep(1:length(seg.widths), seg.widths)
+        }
     }
     attr(seg.tree, "cval") <- cval
     # add segs to original matrix
     mat0$seg <- rep(NA_real_, nrow(mat0))
     mat0$seg[ii] <- mat$seg
     # return matrix
-    list(seg.tree=seg.tree, jointseg=mat0, hscl=hscl)
+    list(seg.tree=seg.tree, jointseg=mat0, hscl=hscl, chromlevels=na.omit(chrs))
 }
 
 # segment summary

@@ -1,3 +1,8 @@
+09/22/2016: v0.5.3
+
+  o added hg38 as a genome build option (needs pctGCdata >= 0.2.0)
+  o changed the code to allow for chromosomes with no snps
+
 08/10/2016: v0.5.2
 
   o fixed the bug in counts2logROR that did not pass gbuild

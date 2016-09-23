@@ -7,7 +7,7 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
   nX=x$nX
   seg=out
   
-  jointseg=subset(jointseg,!is.na(cnlr))  
+  jointseg=subset(jointseg,!is.na(jointseg$cnlr))  
   logR=jointseg$cnlr 
   logOR=jointseg$valor 
   logORvar=jointseg$lorvar 
