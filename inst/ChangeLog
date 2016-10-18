@@ -1,3 +1,8 @@
+10/18/2016: v0.5.4
+
+  o added colClasses to read.csv in readSnpMatrix (Henrik's comment)
+  o changed stomach.csv.gz to have Ref & Alt columns (all "N")
+
 09/22/2016: v0.5.3
 
   o added hg38 as a genome build option (needs pctGCdata >= 0.2.0)

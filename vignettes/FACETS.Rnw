@@ -59,18 +59,18 @@ allele read counts were extracted from the bam files for germline polymorphic
 sites catalogued in the dbSNP and 1000genome database ($\sim$ 1.9 million
 polymorphic positions). C++ code to generate such read count files and
 instructions for using it are available in {\tt extcode} directory. This
-program generates csv file in which the first 4 columns are: Chormosome,
+program generates csv file in which the first 4 columns are: Chromosome,
 Position, Ref and Alt. Then for each bam file 4 columns with names File\#R,
 File\#A, File\#E and File\#D giving the counts of number of reads with the ref
 allele, alt allele, errors (neither ref nor alt) and deletions in that
 position. The hashmark (\#) is the number in position of the file in the
 sequence of bam files given to the pileup code. In the included data the ref
-and alt allele information were removed and random noise added to the SNP
+and alt alleles were replaced with ``N'' and random noise added to the SNP
 positions to deidentify the case. \\
 
 <<echo=TRUE,print=FALSE>>=
 datafile = system.file("extdata", "stomach.csv.gz", package="facets")
-head(read.csv(datafile))
+head(read.csv(datafile)[,c(1:2,5:12)])
 @ 
 
 \section{An Example}
@@ -112,7 +112,7 @@ xx = preProcSample(rcmat)
 A bivariate genome segmentation is performed on logR and logOR by extending the
 CBS algotithm \citep{olshen04,venkat07} to the bivariate scenario using a $T^2$
 statistic for identifiying change points. If the maximal statistic is greater
-than a pre-determined critical value (cval), we decalre a change exists and the
+than a pre-determined critical value (cval), we declare a change exists and the
 change points that maximize this statistic. Lower cval lead to higher
 sensitivity for small changes. After segmentation, a clustering process is
 applied to group the segments into clusters of the same underlying genotype. 
