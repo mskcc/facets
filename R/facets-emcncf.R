@@ -19,7 +19,8 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
   nmark=seg$num.mark
   segclust=seg$segclust
   cnlr.median.clust=by(seg$cnlr.median,segclust,function(x)mean(na.omit(x)))
-  mafR.clust=by(seg$mafR,segclust,function(x)mean(na.omit(x)))
+  #mafR.clust=by(seg$mafR,segclust,function(x)mean(na.omit(x)))
+  mafR.clust=by(seg$mafR.clust,segclust,function(x)mean(na.omit(x)))
   segs=rep(1:length(nmark),nmark)  
   nseg=length(nmark)
   nhet=seg$nhet
@@ -57,8 +58,11 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
   if(all(seg$cf[seg$chrom<nX]==1&seg$tcn[seg$chrom<nX]==2)|max(mafR.clust[seg$chrom<nX], na.rm = T) < 0.05){
     rhov.em=rep(1,nseg)
     t.em=rep(2,nseg); minor.em=rep(1,nseg)
+    #focal amp/del recalculate setting cf=1
+    t.em[seg$tcn!=2]=round(2^(seglogr[seg$tcn!=2]-dipLogR+1),0)
+    maf=exp(sqrt(mafR))
+    minor.em[seg$tcn!=2]=round(t.em[seg$tcn!=2]/(maf[seg$tcn!=2]+1),0)
     minor.em[nhet<min.nhet]=NA
-    rhov.em=rep(1,nseg)
     rho=NA
     gamma=2
     #out1=data.frame(seg,cf.em=rhov.em,tcn.em=t.em, lcn.em=minor.em)
