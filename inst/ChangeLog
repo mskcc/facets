@@ -1,3 +1,7 @@
+10/28/2016: v0.5.5
+
+  o fixed bugs in emcncf and emcncf2 (affected cases with no CNA)
+
 10/18/2016: v0.5.4
 
   o added colClasses to read.csv in readSnpMatrix (Henrik's comment)
