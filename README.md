@@ -7,6 +7,12 @@ You can install the current version (along with the vignette) using the command
 devtools::install_github("mskcc/facets", build_vignettes = TRUE)
 ```
 
+pctGCdata is a required package. So install that also (needs to be done only once)
+
+```R
+devtools::install_github("mskcc/pctGCdata")
+```
+
 ## NOTES
 
 ### 2016_10_28 (version 0.5.5)
