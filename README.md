@@ -1,9 +1,15 @@
 # facets
 Algorithm to implement Fraction and Allele specific Copy number Estimate from Tumor/normal Sequencing.
 
+You can install the current version (along with the vignette) using the command
+
+```R
+devtools::install_github("mskcc/facets", build_vignettes = TRUE)
+```
+
 ## NOTES
 
-### 2016_08_08 (version 0.5.2)
+### 2016_10_28 (version 0.5.5)
 
 The new version estimates the log-ratio level corresponding to the diploid state. It is embedded into the procSample call.
 In terms of using the package you can now do:
