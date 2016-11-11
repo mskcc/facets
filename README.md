@@ -15,7 +15,7 @@ devtools::install_github("mskcc/pctGCdata")
 
 ## NOTES
 
-### 2016_10_28 (version 0.5.5)
+### 2016_11_11 (version 0.5.6)
 
 The new version estimates the log-ratio level corresponding to the diploid state. It is embedded into the procSample call.
 In terms of using the package you can now do:

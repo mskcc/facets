@@ -6,17 +6,22 @@ c
 c     sx is the bivariate vector - centered and scaled
 c        will be used to store partial sums (computed locally)
 c     ihet is the cumsum of het indicator
-c
-      subroutine t2maxo(n, sx, ihet, iseg, ostat)
-      integer n, iseg(2)
+c     nhet is the number of hets in the segment
+c     rnij stores  sqrt(n/((j-i)*(n-(j-i))))
+c     rhij stores  nhet/((ihet(j)-ihet(i))*(nhet-(ihet(j)-ihet(i))))
+c     delij stores  delta*sqrt{((j-i)*(n-(j-i)))/n} - min effect size
+c     
+      subroutine t2maxo(n, sx, ihet, iseg, ostat, nhet, rnij, rhij,
+     1     delij)
+      integer n, ihet(n), iseg(2), nhet
 c     the two columns of sx are cnlr, vaflor
-      double precision sx(n,2), ihet(n), ostat
+      double precision sx(n,2), ostat, rnij(n), rhij(nhet), delij(n)
 
 c     local variables we need
-      integer nb, i, j, k, l, nb2, bi, bj, ilo, ihi, jlo, jhi
+      integer nb, i, j, k, l, nb2, bi, bj, ilo, ihi, jlo, jhi, ij, hij,
+     1     alen1, alen2
       double precision psx1, psx2, psmin1, psmax1, psdiff1, psmin2,
-     1     psmax2, psdiff2, rn, zstat, hijinv, dnhet, alen1, alen2,
-     1     xm1, xm2
+     1     psmax2, psdiff2, rn, zstat, hijinv, dnhet, xm1, xm2
 c     
 c     use local arrays for working within blocks
 c     block absolute max for variables
@@ -44,6 +49,9 @@ c     use blocks only if n is at least 100
          nb = 1
       endif
 
+c     when indices are binned into blocks index i(j) is in block bi(bj)
+c     ilo-ihi give the range of index i and jlo-jhi for index j
+
 c     the number of paiwise block comparison
       nb2 = nb*(nb+1)/2
 c     allocate memory
@@ -59,92 +67,93 @@ c     block boundaries
  10   continue
 
 c     find the max, min of partial sums within blocks
-      ilo = 1
+      jlo = 1
 c     block counter
       l = 0
 c     partial sum initialization
       psx1 = 0.0
       psx2 = 0.0
-c     loop over blocks
-      do 40 j = 1, nb
+c     loop over block bj for index j
+      do 40 bj = 1, nb
+c     jlo has been set already; set jhi
+         jhi = bb(bj)
 c     initialize local max of |x1| and |x2|
-         xmax1(j) = abs(sx(ilo,1))
-         xmax2(j) = abs(sx(ilo,2))
+         xmax1(bj) = abs(sx(jlo,1))
+         xmax2(bj) = abs(sx(jlo,2))
 c     update partial sums and store in place
-         psx1 = psx1 + sx(ilo,1)
-         sx(ilo,1) = psx1
-         psx2 = psx2 + sx(ilo,2)
-         sx(ilo,2) = psx2
+         psx1 = psx1 + sx(jlo,1)
+         sx(jlo,1) = psx1
+         psx2 = psx2 + sx(jlo,2)
+         sx(jlo,2) = psx2
 c     initialize block specific min and max at first observation
-         psmin1 = sx(ilo,1)
-         psmax1 = sx(ilo,1)
-         psmin2 = sx(ilo,2)
-         psmax2 = sx(ilo,2)
-c     loop over observations in block
-         do 20 i = ilo+1, bb(j)
+         psmin1 = sx(jlo,1)
+         psmax1 = sx(jlo,1)
+         psmin2 = sx(jlo,2)
+         psmax2 = sx(jlo,2)
+c     loop over rest of the observations in block bj
+         do 20 j = jlo+1, jhi
 c     update local max of |x1| and |x2|
-            xmax1(j) = max(xmax1(j), abs(sx(i,1)))
-            xmax2(j) = max(xmax2(j), abs(sx(i,2)))
+            xmax1(bj) = max(xmax1(bj), abs(sx(j,1)))
+            xmax2(bj) = max(xmax2(bj), abs(sx(j,2)))
 c     update partial sums and store in place
-            psx1 =  psx1 + sx(i,1)
-            sx(i,1) = psx1
-            psx2 =  psx2 + sx(i,2)
-            sx(i,2) = psx2
+            psx1 =  psx1 + sx(j,1)
+            sx(j,1) = psx1
+            psx2 =  psx2 + sx(j,2)
+            sx(j,2) = psx2
 c     update for first variable
-            if (sx(i,1) .lt. psmin1) psmin1 = sx(i,1)
-            if (sx(i,1) .gt. psmax1) psmax1 = sx(i,1)
+            if (sx(j,1) .lt. psmin1) psmin1 = sx(j,1)
+            if (sx(j,1) .gt. psmax1) psmax1 = sx(j,1)
 c     update for second variable
-            if (sx(i,2) .lt. psmin2) psmin2 = sx(i,2)
-            if (sx(i,2) .gt. psmax2) psmax2 = sx(i,2)
+            if (sx(j,2) .lt. psmin2) psmin2 = sx(j,2)
+            if (sx(j,2) .gt. psmax2) psmax2 = sx(j,2)
  20      continue
 c     store the block min, max and locations
-         bpsmin1(j) = psmin1
-         bpsmax1(j) = psmax1
-         bpsmin2(j) = psmin2
-         bpsmax2(j) = psmax2
+         bpsmin1(bj) = psmin1
+         bpsmax1(bj) = psmax1
+         bpsmin2(bj) = psmin2
+         bpsmax2(bj) = psmax2
 c     t-statistic bound for this block matched with all previous blocks
-         do 30 i = 1,j
+c     loop over block bi for index i
+         do 30 bi = 1,bj
+c     set the range of i index (ilo-ihi) for block bi
+            if (bi .eq. 1) then
+               ilo = 1
+            else
+               ilo = bb(bi-1)+1
+            endif
+            ihi = bb(bi)
 c     increment block counter
             l = l+1
             loc(l) = l
-            bloci(l) = i
-            blocj(l) = j
+            bloci(l) = bi
+            blocj(l) = bj
 c     max abs difference in partial sums (bound of numerator)
-            psdiff1 = max(abs(bpsmax1(j)-bpsmin1(i)), 
-     1           abs(bpsmax1(i)-bpsmin1(j)))
-            psdiff2 = max(abs(bpsmax2(j)-bpsmin2(i)), 
-     1           abs(bpsmax2(i)-bpsmin2(j)))
+            psdiff1 = max(abs(bpsmax1(bj)-bpsmin1(bi)), 
+     1           abs(bpsmax1(bi)-bpsmin1(bj)))
+            psdiff2 = max(abs(bpsmax2(bj)-bpsmin2(bi)), 
+     1           abs(bpsmax2(bi)-bpsmin2(bj)))
 c     mimimum arc lengths (bound for denominator)
-            if (i .eq. j) then
+            if (bi .eq. bj) then
+c     if blocks bi and bj are the same min arc length is 1
                alen1 = 1
-               alen2 = min(1.0d0, dnhet-1.0d0)
-            else if (i .eq. 1) then
-               alen1 = dfloat(min(ilo-bb(i), n-bb(j)+1))
-               alen2 = min(ihet(ilo)-ihet(bb(i)), dnhet-ihet(bb(j))+
-     1              ihet(1))
+               alen2 = 1
             else
-               alen1 = dfloat(min(ilo-bb(i), n-bb(j)+bb(i-1)+1))
-               alen2 = min(ihet(ilo)-ihet(bb(i)), dnhet-ihet(bb(j))+
-     1              ihet(bb(i-1)+1))
+c     o/w min of {end of i to start if j} & {end of j to start of i} 
+               alen1 = min(jlo-ihi, n-(jhi-ilo))
+               alen2 = min(ihet(jlo)-ihet(ihi),
+     1              nhet-(ihet(jhi)-ihet(ilo)))
             endif
-c     minimum number of observations needed to get to psdiff
-            if (alen1 .eq. 1) then
-               xm1 = max(xmax1(i), xmax1(j))
-               if(xm1 .gt. 0) alen1 = dfloat(ceiling(psdiff1/xm1))
-            endif
-            if (alen2 .le. 1) then
-               xm2 = max(xmax2(i), xmax2(j))
-               if(xm2 .gt. 0) alen2 = dfloat(ceiling(psdiff2/xm2))
-            endif
+c     if alen2 if zero set it to be 1
+            if (alen2 .le. 0) alen2 = 1
 c     t statistic bounds
 c     bound for variable 1
-            btmax(l) = rn*psdiff1**2/(alen1*(rn-alen1))
-c     bound for variable 2 (dnhet >=2 needed for data to be non zero)
-            if (alen2 .gt. 0.5) btmax(l) = btmax(l) +
-     1           dnhet*psdiff2**2/(alen2*(dnhet-alen2))
+            zstat = rnij(alen1)*abs(psdiff1) - delij(alen1)
+            if (zstat .lt. 0.0d0) zstat = 0.0d0
+c     bound for variable 2 (if nhet =1 rhij(1) = 0 so just adds zero)
+            btmax(l) = zstat**2 + rhij(alen2)*psdiff2**2
  30      continue
-c     reset ilo to be the block boundary + 1
-         ilo = bb(j) + 1         
+c     reset jlo to be the block boundary + 1
+         jlo = bb(bj) + 1
  40   continue
 
 c     Now sort the t-statistics by their magnitude
@@ -170,19 +179,15 @@ c     if bi and bj are the same indices in a triangle
 c     loop over indices
             do 70 i = ilo, ihi-1
                do 60 j = i+1, ihi
+                  ij = j-i
 c     copy number is available for all SNPs
-                  zstat = rn*(sx(j,1) - sx(i,1))**2/
-     1                 (dfloat(j-i)*dfloat(n-j+i))
+                  zstat = rnij(ij)*abs(sx(j,1) - sx(i,1)) - delij(ij)
+                  if (zstat .lt. 0.0d0) zstat = 0.0d0
 c     product of number of het in (i,j] and outside it
-                  hijinv = (ihet(j)-ihet(i))*(dnhet-(ihet(j)-ihet(i)))
-c     if product is 0 (<0.001 to allow for machine precision) scale is 0
-                  if (hijinv .lt. 0.001) then
-                     hijinv = 0.0
-                  else
-                     hijinv = 1.0/hijinv
-                  endif
+                  hij = (ihet(j)-ihet(i)) 
+                  if (hij .eq. 0) hij = nhet
 c     baflor is available only for 
-                  zstat = zstat + dnhet*hijinv*(sx(j,2) - sx(i,2))**2
+                  zstat = zstat**2 + rhij(hij)*(sx(j,2) - sx(i,2))**2
                   if (zstat .gt. ostat) then
                      ostat = zstat
                      iseg(1) = i
@@ -200,19 +205,15 @@ c     baflor is available only for
 c     loop over indices
             do 90 i = ilo, ihi
                do 80 j = jlo, jhi
+                  ij = j-i
 c     copy number is available for all SNPs
-                  zstat = rn*(sx(j,1) - sx(i,1))**2/
-     1                 (dfloat(j-i)*dfloat(n-j+i))
+                  zstat = rnij(ij)*abs(sx(j,1) - sx(i,1)) - delij(ij)
+                  if (zstat .lt. 0.0d0) zstat = 0.0d0
 c     product of number of het in (i,j] and outside it
-                  hijinv = (ihet(j)-ihet(i))*(dnhet-(ihet(j)-ihet(i)))
-c     if product is 0 (<0.001 to allow for machine precision) scale is 0
-                  if (hijinv .lt. 0.001) then
-                     hijinv = 0.0
-                  else
-                     hijinv = 1.0/hijinv
-                  endif
+                  hij = (ihet(j)-ihet(i)) 
+                  if (hij .eq. 0) hij = nhet
 c     baflor is available only for 
-                  zstat = zstat + dnhet*hijinv*(sx(j,2) - sx(i,2))**2
+                  zstat = zstat**2 + rhij(hij)*(sx(j,2) - sx(i,2))**2
                   if (zstat .gt. ostat) then
                      ostat = zstat
                      iseg(1) = i

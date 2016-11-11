@@ -6,7 +6,8 @@
   included and prepares the read counts data frame needed for
   \code{preProcSample}
 }
-\usage{readSnpMatrix(filename, skip=0L, err.thresh=0, del.thresh=0)}
+\usage{readSnpMatrix(filename, skip=0L, err.thresh=Inf, del.thresh=Inf,
+                     perl.pileup=FALSE)}
 \arguments{
   \item{filename}{absolute or relative path of the data file.}
   \item{skip}{number of lines to skip. Defaults is none.}
@@ -14,6 +15,8 @@
     position. Loci where the count exceeds threshold will be discarded.}
   \item{del.thresh}{threshold level for reads with deletions at that
     position. Loci where the count exceeds threshold will be discarded.}
+  \item{perl.pileup}{logical indicating whether the data file was
+    created using the earlier perl version (package in Google-site).}
 }
 \value{
   A data frame consisting of 6 variables for each SNP (or pseudo-SNP).
@@ -34,7 +37,8 @@
   analysis. This loci with overlapping paired end reads should not be
   counted twice (older versions of samtools mpileup will do this).
 
-  This function is written for the counter written by Venkat Seshan and
-  re-implemented in C++ by Alex Studer. Alternate counters can be
-  accommodated by writing a similar function.
+  This function is written for the counter written by Venkat Seshan (in
+  perl) and re-implemented in C++ by Alex Studer. The file format for
+  the c++ version is different from the perl version. Alternate counters
+  can be accommodated by writing a similar function.
 }

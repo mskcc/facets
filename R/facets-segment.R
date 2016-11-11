@@ -1,5 +1,5 @@
 # recursively split the chromosomes using cval and save the tree structure
-fit.cpt.tree <- function(genomdat, edgelim=10, cval=25, hscl=1) {
+fit.cpt.tree <- function(genomdat, edgelim=10, cval=25, hscl=1, delta=0) {
     # genomdat has 3 columns: logR, logOR and het indicator
     n <- nrow(genomdat)
     seg.end <- c(0,n)
@@ -33,13 +33,27 @@ fit.cpt.tree <- function(genomdat, edgelim=10, cval=25, hscl=1) {
             }
             # cumulative heterozygous counts
             current.genomdat[,3] <- cumsum(current.genomdat[,3])
+            # number of hets (if zero make it 1)
+            nhet <- max(current.genomdat[current.n, 3], 1)
+            # n/(i*(n-i)) for i in 1 ,..., n
+            rnij <- sqrt(current.n/{{1:current.n}*{(current.n-1):0}})
+            rnij[current.n] <- 0
+            # minimum effect size delta
+            delij <- delta*sqrt({{1:current.n}*{(current.n-1):0}}/current.n)
+            # nhet/(i*(nhet-i)) for i in 1 ,..., nhet
+            rhij <- nhet/{{1:nhet}*{(nhet-1):0}}
+            rhij[nhet] <- 0
             # call segmentation code
             zzz <- .Fortran("t2maxo",
                             n = as.integer(current.n),
                             sx = as.double(current.genomdat[,1:2]),
-                            ihet = as.double(current.genomdat[,3]),
+                            ihet = as.integer(current.genomdat[,3]),
                             iseg = integer(2),
-                            ostat = double(1))
+                            ostat = double(1),
+                            as.integer(nhet),
+                            as.double(rnij),
+                            as.double(rhij),
+                            as.double(delij))
             # if ostat > cval, there are 2 changepoints, else 0.
             # 35 seems a reasonable cutoff based on null simulations
             # with hetscale (scaled logOR) use 50 at the minimum
@@ -103,13 +117,17 @@ prune.cpt.tree <- function(seg.tree, cval=25) {
 }
 
 # segment by looping over the chromosomes
-segsnps <- function(mat, cval=25, hetscale=FALSE) {
+segsnps <- function(mat, cval=25, hetscale=FALSE, delta=0) {
     # keep the original data
     mat0 <- mat
     # keep only rows that have finite values for cnlr
     ii <- is.finite(mat$cnlr)
     # keep only the necessary variables for segmentation
     mat <- mat[ii, c("chrom","cnlr","valor","het")]
+    # convert minimum effect size deltaCN into standardized log-rato 
+    delta <- log2(1+delta/2)/mad(diff(mat$cnlr), na.rm=TRUE)
+    # from log-ratio into AUC scale
+    delta <- pnorm(delta/sqrt(2)) - 0.5
     # scaling factor for het snps
     hscl <- ifelse(hetscale, max(1,sqrt(0.25*nrow(mat)/sum(mat$het))), 1)
     # set valor=0 for homozygous snps
@@ -132,7 +150,7 @@ segsnps <- function(mat, cval=25, hetscale=FALSE) {
         } else {
             l <- l + 1 # new chromosome with data
             # fit segment tree
-            tmp <- fit.cpt.tree(genomdat, cval=cval, hscl=hscl)
+            tmp <- fit.cpt.tree(genomdat, cval=cval, hscl=hscl, delta=delta)
             seg.tree[[l]] <- tmp$seg.tree
             # segment indicator
             seg.widths <- diff(tmp$seg.ends)

@@ -5,8 +5,8 @@
   Processes a snp read count matrix and generates a segmentation tree
 }
 \usage{
-  preProcSample(rcmat, ndepth=35, het.thresh=0.25, snp.nbhd=250,
-                cval=25, gbuild=c("hg19", "hg38", "hg18", "mm9", "mm10"),
+  preProcSample(rcmat, ndepth=35, het.thresh=0.25, snp.nbhd=250, cval=25,
+                deltaCN=0, gbuild=c("hg19", "hg38", "hg18", "mm9", "mm10"),
                 hetscale=TRUE, unmatched=FALSE, ndepthmax=1000)
 }
 \arguments{
@@ -17,6 +17,7 @@
   \item{het.thresh}{vaf threshold to call a SNP heterozygous}
   \item{snp.nbhd}{window size}
   \item{cval}{critical value for segmentation}
+  \item{deltaCN}{minimum detectable difference in CN from diploid state}
   \item{gbuild}{genome build used for the alignment of the genome.
     Default value is human genome build hg19. Other possibilities are
     hg38 & hg18 for human and mm9 & mm10 for mouse. Chromosomes used for

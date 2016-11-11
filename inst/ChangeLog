@@ -1,3 +1,13 @@
+11/11/2016: v0.5.6
+
+  o fixed bug in readSnpMatrix which removed all loci with any del or
+    err read. New default is to keep all.
+  o fixed bug in cbs2rank.f code that was greedy in search for max T.
+  o changes cbs2rank.f code and R functions (segsnps etc. that call it)
+    to specify delta - min change in E(logR).
+  o preProcSample has a new option delta now to implement
+  o readSnpMatrix can read the old perl pileup files now
+
 10/28/2016: v0.5.5
 
   o fixed bugs in emcncf and emcncf2 (affected cases with no CNA)
