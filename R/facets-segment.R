@@ -36,12 +36,12 @@ fit.cpt.tree <- function(genomdat, edgelim=10, cval=25, hscl=1, delta=0) {
             # number of hets (if zero make it 1)
             nhet <- max(current.genomdat[current.n, 3], 1)
             # n/(i*(n-i)) for i in 1 ,..., n
-            rnij <- sqrt(current.n/{{1:current.n}*{(current.n-1):0}})
+            rnij <- sqrt({current.n/{1:current.n}}/{(current.n-1):0})
             rnij[current.n] <- 0
             # minimum effect size delta
-            delij <- delta*sqrt({{1:current.n}*{(current.n-1):0}}/current.n)
+            delij <- delta*sqrt({1:current.n}*{{(current.n-1):0}/current.n})
             # nhet/(i*(nhet-i)) for i in 1 ,..., nhet
-            rhij <- nhet/{{1:nhet}*{(nhet-1):0}}
+            rhij <- {nhet/{1:nhet}}/{(nhet-1):0}
             rhij[nhet] <- 0
             # call segmentation code
             zzz <- .Fortran("t2maxo",
