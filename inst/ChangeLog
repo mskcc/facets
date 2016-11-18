@@ -7,6 +7,7 @@
     to specify delta - min change in E(logR).
   o preProcSample has a new option delta now to implement
   o readSnpMatrix can read the old perl pileup files now
+  o fixed integer overflow bug in fit.cpt.tree (11/18/2016)
 
 10/28/2016: v0.5.5
 
