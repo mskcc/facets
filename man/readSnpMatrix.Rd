@@ -41,4 +41,7 @@
   perl) and re-implemented in C++ by Alex Studer. The file format for
   the c++ version is different from the perl version. Alternate counters
   can be accommodated by writing a similar function.
+
+  This function expects the read counts to be in normal-tumor order. So
+  use snp-pileup with the bam files given in normal-tumor order.
 }
