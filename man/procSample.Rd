@@ -20,7 +20,18 @@
   \item{jointseg}{The data that were segmented. Only the loci that were
     sampled within a snp.nbhd are present}
   \item{out}{data frame of segment summaries pre and post clustering of
-    segments}
+    segments. The columns are: \code{chrom} the chromosome to which the
+    segment belongs; \code{seg} the segment number; \code{num.mark} the
+    number of SNPs in the segment; \code{nhet} the number of SNPs that
+    are deemed heterozygous; \code{cnlr.median} the median log-ratio of
+    the segment; \code{mafR} the log-odds-ratio summary for the segment;
+    \code{segclust} the segment cluster to which segment belongs;
+    \code{cnlr.median.clust} the median log-ratio of the segment
+    cluster; \code{mafR.clust} the log-odds-ratio summary for the
+    segment cluster; \code{cf} the cellular fraction of the segment;
+    \code{tcn} the total copy number of the segment; \code{lcn} the
+    minor copy number of the segment.
+  }
   \item{dipLogR}{specified or obtained from data}
   \item{...}{other output when findDiploidLogR is used}
 }

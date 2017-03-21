@@ -1,3 +1,7 @@
+03/21/2017: v0.5.7
+
+  o added details of the columns of the segment summary data frame
+
 11/11/2016: v0.5.6
 
   o fixed bug in readSnpMatrix which removed all loci with any del or
