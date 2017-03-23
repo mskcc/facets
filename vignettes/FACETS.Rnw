@@ -44,7 +44,8 @@ Memorial Sloan-Kettering Cancer Center\\
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Overview}
 
-This document presents an overview of the {\tt FACETS} package. This package is
+This document presents an overview of the {\tt FACETS} package which implements
+the methods described in \citep{shen2016facets}. This package is
 for analyzing allele-specific DNA copy number and clonal heterogeneity from
 high-throughput sequencing including whole-genome, whole-exome, and some
 targeted cancer gene panels. The method implements a bivariate genome
@@ -57,9 +58,9 @@ TCGA stomach cancer sample. To generate these data, tumor and normal bam files
 were downloaded from CGHub \url{https://cghub.ucsc.edu/}. Reference and variant
 allele read counts were extracted from the bam files for germline polymorphic
 sites catalogued in the dbSNP and 1000genome database ($\sim$ 1.9 million
-polymorphic positions). C++ code to generate such read count files and
-instructions for using it are available in {\tt extcode} directory. This
-program generates csv file in which the first 4 columns are: Chromosome,
+polymorphic positions). C++ code ({\tt snp-pileup}) to generate such read count
+files and instructions for using it are available in {\tt extcode} directory.
+This program generates csv file in which the first 4 columns are: Chromosome,
 Position, Ref and Alt. Then for each bam file 4 columns with names File\#R,
 File\#A, File\#E and File\#D giving the counts of number of reads with the ref
 allele, alt allele, errors (neither ref nor alt) and deletions in that
@@ -72,6 +73,11 @@ positions to deidentify the case. \\
 datafile = system.file("extdata", "stomach.csv.gz", package="facets")
 head(read.csv(datafile)[,c(1:2,5:12)])
 @ 
+
+{\sc Note:} Instructions for using the {\tt snp-pileup} code to generate the
+read count matrix are given in the included {\tt README.txt} file. Since the
+read counts are expected to be in the normal-tumor order we invoke the command
+as {\tt snp-pileup -g -q15 -Q20 -P100 -r25,0  vcffile outputfile normalbam tumorbam}
 
 \section{An Example}
 
