@@ -66,19 +66,11 @@ emcncf2=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,difcf=0.05,maxk
   n=length(logR)  
   
   #diploid genome check 
-  if(all(seg$cf[seg$chrom<nX]==1&seg$tcn[seg$chrom<nX]==2)|max(mafR.clust[seg$chrom<nX], na.rm = T) < 0.05){
-    rhov.em=rep(1,nseg)
-    t.em=rep(2,nseg); minor.em=rep(1,nseg)
-    #focal amp/del recalculate setting cf=1
-    t.em[seg$tcn!=2]=round(2^(seglogr[seg$tcn!=2]-dipLogR+1),0)
-    maf=exp(sqrt(mafR))
-    minor.em[seg$tcn!=2]=round(t.em[seg$tcn!=2]/(maf[seg$tcn!=2]+1),0)
-    minor.em[nhet<min.nhet]=NA
+  if(all(seg$cf[seg$chrom<nX]==1&seg$tcn[seg$chrom<nX]==2)|max(mafR.clust[seg$chrom<nX & seg$nhet>15], na.rm = T) < 0.05){
     rho=NA
     gamma=2
-    #out1=data.frame(seg,cf.em=rhov.em,tcn.em=t.em, lcn.em=minor.em)
-    out1=data.frame(seg[,1:9],start=startseq,end=endseq,cf.em=rhov.em,tcn.em=t.em,lcn.em=minor.em)
-    emflags=paste(emflags,"Insufficient information. Likely diplod or purity too low.",sep=" ")
+    out1=data.frame(seg[,1:9],start=startseq,end=endseq,cf.em=seg$cf,tcn.em=seg$tcn,lcn.em=seg$lcn)
+    emflags=paste(emflags,"Insufficient information to estimate purity. Likely diplod or purity too low.",sep=" ")
     out=list(purity=rho,ploidy=gamma,dipLogR=dipLogR,cncf=out1, emflags=emflags)
     return(out)    
     stop("Insufficient information",call.=F)
@@ -116,7 +108,7 @@ emcncf2=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,difcf=0.05,maxk
   
    
   rho=NA
-  if(length(loh)>2){
+  if(length(loh)>2 &!all(is.na(rhov.lsd[loh]))){
     rho=max(by(rhov.lsd[loh],segclust[loh],function(x)mean(x,na.rm=T)),na.rm=T) #use LOH to estimate putity when available.
   }else{  
     if(length(na.omit(rhov.lsd.subset))>1)rho=max(by(rhov.lsd.subset,segclust,function(x)mean(x,na.rm=T)),na.rm=T)
