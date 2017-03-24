@@ -1,7 +1,7 @@
 # facets
 Algorithm to implement Fraction and Allele specific Copy number Estimate from Tumor/normal Sequencing.
 
-Travis CI [![Build Status](https://travis-ci.org/mskcc/facets.svg?branch=master)](https://travis-ci.org/mskcc/facets) 
+**Travis CI** (_Linux & macOS_) [![Build Status](https://travis-ci.org/mskcc/facets.svg?branch=master)](https://travis-ci.org/mskcc/facets) 
 
 You can install the current version (along with the vignette) using the command
 
