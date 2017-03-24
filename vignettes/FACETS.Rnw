@@ -74,10 +74,11 @@ datafile = system.file("extdata", "stomach.csv.gz", package="facets")
 head(read.csv(datafile)[,c(1:2,5:12)])
 @ 
 
-{\sc Note:} Instructions for using the {\tt snp-pileup} code to generate the
-read count matrix are given in the included {\tt README.txt} file. Since the
-read counts are expected to be in the normal-tumor order we invoke the command
-as {\tt snp-pileup -g -q15 -Q20 -P100 -r25,0  vcffile outputfile normalbam tumorbam}
+\noindent {\sc Note:} Instructions for using the {\tt snp-pileup} code to
+generate the read count matrix are given in the included {\tt README.txt}
+file. Since the read counts are expected to be in the normal-tumor order we
+invoke the command as {\tt snp-pileup -g -q15 -Q20 -P100 -r25,0  vcffile
+  outputfile normalbam tumorbam}
 
 \section{An Example}
 
