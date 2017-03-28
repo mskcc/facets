@@ -119,6 +119,10 @@ plotSample <- function(x, emfit=NULL, clustered=FALSE, plot.type=c("em","naive",
         }
     } else {
         out <- emfit$cncf
+        # add the naive tcn, lcn and cf to out
+        out$tcn <- x$out$tcn
+        out$lcn <- x$out$lcn
+        out$cf <- x$out$cf
     }
     # determine which of the cnlr.median & mafR to show
     if (clustered) {
