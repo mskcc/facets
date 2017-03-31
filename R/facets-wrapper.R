@@ -111,6 +111,8 @@ plotSample <- function(x, emfit=NULL, clustered=FALSE, plot.type=c("em","naive",
     par(mar=c(0.25,3,0.25,1), mgp=c(1.75, 0.6, 0), oma=c(3,0,1.25,0))
     # raw data used for joint segmentation
     jseg <- x$jointseg
+    # chromosome boundaries
+    chrbdry <- which(diff(jseg$chrom) != 0)
     if (missing(emfit)) {
         out <- x$out
         if (plot.type=="em" | plot.type=="both") {
@@ -142,11 +144,13 @@ plotSample <- function(x, emfit=NULL, clustered=FALSE, plot.type=c("em","naive",
     segend <- segbdry[-1]
     # plot the logR data and segment medians
     plot(jseg$cnlr[is.finite(jseg$cnlr)], pch=".", cex=2, col = c("grey","lightblue","azure4","slateblue")[chrcol], ylab="log-ratio", xaxt="n")
+    abline(v=chrbdry, lwd=0.25)
     abline(h=median(jseg$cnlr, na.rm=TRUE), col="green2")
     abline(h = x$dipLogR, col = "magenta4")
     segments(segstart, cnlr.median, segend, cnlr.median, lwd=1.75, col=2)
     # plot the logOR data and mafR
     plot(jseg$valor[is.finite(jseg$cnlr)], pch=".", cex=2.5, col = c("grey","lightblue","azure4","slateblue")[chrcol], ylab="log-odds-ratio", ylim=c(-4,4), xaxt="n")
+    abline(v=chrbdry, lwd=0.25)
     segments(segstart, sqrt(mafR), segend, sqrt(mafR), lwd=1.75, col=2)
     segments(segstart, -sqrt(mafR), segend, -sqrt(mafR), lwd=1.75, col=2)
     # naive copy number and cellular faction pieces
@@ -157,6 +161,7 @@ plotSample <- function(x, emfit=NULL, clustered=FALSE, plot.type=c("em","naive",
         ii <- which(out$lcn > 5)
         if (length(ii)>0) out$lcn[ii] <- 5 + log10(out$lcn[ii])
         plot(c(0,length(jseg$cnlr)), c(0,max(out$tcn)), type="n", ylab="copy number (nv)", xaxt="n")
+        abline(v=chrbdry, lwd=0.25)
         segments(segstart, out$tcn, segend, out$tcn, lwd=1.75, col=1)
         segments(segstart, out$lcn, segend, out$lcn, lwd=1.75, col=2)
         # add the cf
@@ -172,6 +177,7 @@ plotSample <- function(x, emfit=NULL, clustered=FALSE, plot.type=c("em","naive",
         ii <- which(out$lcn.em > 5)
         if (length(ii)>0) out$lcn.em[ii] <- 5 + log10(out$lcn.em[ii])
         plot(c(0,length(jseg$cnlr)), c(0,max(out$tcn.em)), type="n", ylab="copy number (em)", xaxt="n")
+        abline(v=chrbdry, lwd=0.25)
         segments(segstart, out$tcn.em, segend, out$tcn.em, lwd=1.75, col=1)
         segments(segstart, out$lcn.em, segend, out$lcn.em, lwd=1.75, col=2)
         # add the cf
