@@ -31,8 +31,9 @@ oo <- procSample(xx, cval = 300)
 
 And go straight to
 ```R
-emcncf2(oo)
+emcncf(oo)
 ```
+The ```emcncf2(oo)``` option imposes a clonal cluster structure. This function is currently being reworked. Please use with caution.
 
 The output of procSample now has 4 elements:
 
