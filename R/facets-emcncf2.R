@@ -1,6 +1,8 @@
 #genotype mixture model using EM algorithm to call allele-specific copy number and cellular fraction
 emcncf2=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,difcf=0.05,maxk=5,eps=1e-3){  
   
+  warning("emcncf2 occationally returns quirky copy number estimates due to the clonal cluster structure imposed. please use with caution.")
+  
   jointseg=x$jointseg
   out=x$out
   dipLogR=x$dipLogR
