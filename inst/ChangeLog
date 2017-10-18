@@ -1,3 +1,7 @@
+10/18/2017: v0.5.12
+
+  o documentation to explain the need to set the seed and NA in cncf.
+
 03/31/2017: v0.5.11
 
   o added vertical lines to indicate chromosome boundaries

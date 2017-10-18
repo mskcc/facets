@@ -35,3 +35,9 @@
   \item{dipLogR}{specified or obtained from data}
   \item{...}{other output when findDiploidLogR is used}
 }
+\details{
+  The minor copy number \code{lcn} may not be estimated with confidence
+  when a segment has fewer than \code{min.nhet} heterozygous SNPs and 
+  hence will return \code{NA}. If there are too few heterozygous SNPs in
+  a segment then \code{mafR} and \code{mafR.clust} can be \code{NA}.
+}

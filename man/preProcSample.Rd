@@ -45,3 +45,11 @@
     sampled within a snp.nbhd are present. segment results given.}
   \item{hscl}{scaling factor for logOR data.}
 }
+\details{
+  The SNPs in a genome are not evenly spaced. Some regions have multiple
+  SNPs in a small neighborhood. Thus using all loci will induce serial
+  correlation in the data. To avoid it we sample loci such that only a
+  single locus is used in an interval of length \code{snp.nbhd}. So in
+  order to get reproducible results use \code{set.seed} to fix the
+  random number generator seed.
+}

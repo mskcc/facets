@@ -106,7 +106,9 @@ depth in the tumor versus that in the normal and logOR is defined by the
 log-odds ratio of the variant allele count in the tumor versus in the normal. A
 normalizing constant is calculated for each tumor/normal pair to corrected for
 total library size, and GC-bias is corrected using a loess regression of logR
-over GC content along 1kb windows along the genome.
+over GC content along 1kb windows along the genome. Since {\tt preProcSample}
+samples the snps to be used the random number generator seed should be
+set/saved for reproducible results.
 
 <<echo=TRUE,print=FALSE>>=
 set.seed(1234)
