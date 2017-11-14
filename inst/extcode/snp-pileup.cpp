@@ -223,7 +223,7 @@ int program_main(arguments arguments) {
 	mplp_aux_t **data;
 	data = (mplp_aux_t **) calloc(n, sizeof(mplp_aux_t*)); // allocate memory for data
 	for (i = 0; i < n; ++i) {
-		data[i] = (mplp_aux_t*) calloc(1, sizeof(mplp_aux_t*));
+		data[i] = (mplp_aux_t*) calloc(1, sizeof(mplp_aux_t));
 
 		// open file
 		hFILE *hfp = hopen(arguments.args[i + 2], "r");
