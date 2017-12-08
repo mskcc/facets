@@ -196,3 +196,41 @@ plotSample <- function(x, emfit=NULL, clustered=FALSE, plot.type=c("em","naive",
     if (!missing(sname)) mtext(sname, side=3, line=0, outer=TRUE, cex=0.8)
     par(def.par)  #- reset to default
 }
+
+logRlogORspider <- function(cncf, dipLogR=0, nfrac=0.005) {
+    rho <- seq(0, 0.95, by=0.01)
+    nrho <- length(rho)
+    logACR <- logCNR <- matrix(0, nrho, 19)
+    # initialize index
+    l <- 1
+    # one copy loss
+    logCNR[,l] <- log2(2*(1-rho) + 1*rho) -1
+    logACR[,l] <- log(1/(1-rho))
+    # integer copy numbers (clonal)
+    for(i in 2:7) {
+        for(j in 0:floor(i/2)) {
+            l <- l+1
+            logCNR[,l] <- log2(2*(1-rho) + i*rho) -1 # base-2
+            logACR[,l] <- log(1-rho+(i-j)*rho) - log(1-rho+j*rho)
+        }
+    }
+
+    plot(c(-0.95, 1.8), c(0, 5), type="n", xlab="Expected(logR - dipLogR)", ylab=" Expected(|logOR|)")
+    l <- 1; i <-1; j <-0
+    linecols <- c("black","cyan3","green3","blue")
+    lines(logCNR[,l], logACR[,l], lty=1, col=j+1, lwd=1.25)
+    text(logCNR[nrho,l]+0.03, logACR[nrho,l], paste(i,j,sep="-"), cex=0.65)
+    for(i in 2:7) {
+        for(j in 0:floor(i/2)) {
+            l <- l+1
+            lines(logCNR[,l], logACR[,l], lty=i-1, col=linecols[j+1], lwd=1.25)
+            text(logCNR[nrho,l]+0.03, logACR[nrho,l], paste(i,j,sep="-"), cex=0.65)
+        }
+    }
+
+    nsnps <- sum(cncf$num.mark)
+    nhets <- sum(cncf$nhet)
+    ii <- cncf$num.mark > nfrac*nsnps & cncf$nhet > nfrac*nhets
+    cex <- 0.3 + 2.7*(cncf$num.mark[ii]/sum(0.1*cncf$num.mark[ii]))
+    points(cncf$cnlr.median[ii] - dipLogR, sqrt(abs(cncf$mafR[ii])), cex=cex, col="magenta4", lwd=1.5)
+}

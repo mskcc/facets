@@ -44,4 +44,11 @@
 
   This function expects the read counts to be in normal-tumor order. So
   use snp-pileup with the bam files given in normal-tumor order.
+
+  For WGS data this function will be slow and memory intensive. As an
+  alternate you can use the function \code{readSnpMatrixDT} [written by
+  Dario Beraldi] which uses the data.table package available from the
+  \code{extRfns} directory. It can be accessed using
+
+  \code{source(system.file("extRfns", "readSnpMatrixDT.R", package="facets"))}
 }

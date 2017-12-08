@@ -58,16 +58,16 @@ TCGA stomach cancer sample. To generate these data, tumor and normal bam files
 were downloaded from CGHub \url{https://cghub.ucsc.edu/}. Reference and variant
 allele read counts were extracted from the bam files for germline polymorphic
 sites catalogued in the dbSNP and 1000genome database ($\sim$ 1.9 million
-polymorphic positions). C++ code ({\tt snp-pileup}) to generate such read count
-files and instructions for using it are available in {\tt extcode} directory.
-This program generates csv file in which the first 4 columns are: Chromosome,
-Position, Ref and Alt. Then for each bam file 4 columns with names File\#R,
-File\#A, File\#E and File\#D giving the counts of number of reads with the ref
-allele, alt allele, errors (neither ref nor alt) and deletions in that
-position. The hashmark (\#) is the number in position of the file in the
-sequence of bam files given to the pileup code. In the included data the ref
-and alt alleles were replaced with ``N'' and random noise added to the SNP
-positions to deidentify the case. \\
+polymorphic positions fall in regions targeted by whole exome sequencing). C++
+code ({\tt snp-pileup}) to generate such read count files and instructions for
+using it are available in {\tt extcode} directory. This program generates csv
+file in which the first 4 columns are: Chromosome, Position, Ref and Alt. Then
+for each bam file 4 columns with names File\#R, File\#A, File\#E and File\#D
+giving the counts of number of reads with the ref allele, alt allele, errors
+(neither ref nor alt) and deletions in that position. The hashmark (\#) is the
+number in position of the file in the sequence of bam files given to the pileup
+code. In the included data the ref and alt alleles were replaced with ``N'' and
+random noise added to the SNP positions to deidentify the case. \\
 
 <<echo=TRUE,print=FALSE>>=
 datafile = system.file("extdata", "stomach.csv.gz", package="facets")
@@ -175,8 +175,8 @@ is less than 15, only the total copy number is given. For male gender, the
 number of copy for chromosome X is 1 in the normal. The X chromosome copy
 number in the tumor is adjusted accordingly. 
 
-\noindent
-output file 
+\medskip 
+The segmentation result and the EM fit output looks like this
 <<echo=TRUE,print=FALSE>>=
 head(fit$cncf)
 @ 
@@ -185,7 +185,9 @@ In the output, cf, tcn, lcn are the initial estimates of cellular fraction,
 total and minor copy number estimates, and cf.em, tcn.em, lcn.em are the
 estimates by the mixture model optimized using the EM-algorithm. cf is used as
 initial values for the EM algorithm. For diploid normal segments (total copy=2,
-minor copy=1), we report cellular fraction as 1 (100\% normal).
+minor copy=1), we report cellular fraction as 1 (100\% normal). The logOR data
+for a segment are summarized using the square of expected log-odds-ratio
+(mafR column).
 
 Estimated tumor sample purity and ploidy are reported:
 <<echo=TRUE,print=FALSE>>=
@@ -210,6 +212,18 @@ logOR. Segment means are ploted in red lines. The third panel plots the total
 (black) and minor (red) copy number for each segment. The bottom bar shows the
 associated cellular fraction (cf). Dark blue indicates high cf. Light blue
 indicates low cf. Beige indicates a normal segment (total=2,minor=1).
+
+\medskip
+A diagnostic plot for the fit can be generated using the function
+<<fig=TRUE,echo=TRUE>>=
+logRlogORspider(oo$out, oo$dipLogR)
+@
+
+The segment summaries are plotted as circles where the size of the circle
+increases with the number of loci in the segment. The expected value for
+various integer copy number states are drawn as curves for purity ranging from
+0 to 0.95. For a good fit, the segment summaries should be close to one of the
+lines.
 
 The emcncf algorithm allows a separate cellular fraction estimate for each
 segment cluster. In order to impose a clonally constrained structure on $\phi$,
@@ -238,6 +252,7 @@ output file
 <<echo=TRUE,print=FALSE>>=
 head(fit2$cncf)
 @ 
+
 
 %\newpage
 \bibliographystyle{apalike}

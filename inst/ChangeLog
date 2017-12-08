@@ -1,3 +1,9 @@
+12/08/2017: v0.5.13
+
+  o Added the diagnostic spider plot for logR-logOR summary of segments.
+  o function readSnpMatrixDT to read the pileup count file using
+      data.table package added to extRfns directory (Thx Dario Beraldi).
+
 10/18/2017: v0.5.12
 
   o documentation to explain the need to set the seed and NA in cncf.
