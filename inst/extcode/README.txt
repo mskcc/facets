@@ -34,8 +34,10 @@ Usage
 Usage of snp-pileup requires a VCF file and one (or multiple) sequence files
 containing DNA. The sequence files should be in the BAM format, and both the
 VCF and all sequence files must be sorted. A suitable option for VCF is one
-from NCBI (WARNING: this points to the VCF for the current version of genome
-build; make sure that the VCF matches the genome build used by the bam files).
+from NCBI. (WARNING: this points to the VCF for the current version of genome
+build; make sure that the VCF matches the genome build used by the bam files.
+Other snp/genome build versions are in directories human_9606_b149_GRCh37p13,
+human_9606_b150_GRCh37p13, human_9606_b149_GRCh38p7, human_9606_b150_GRCh38p7.)
 
  ftp://ftp.ncbi.nlm.nih.gov/snp/organisms/human_9606/VCF/00-common_all.vcf.gz
 
