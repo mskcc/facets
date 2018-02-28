@@ -8,7 +8,6 @@
 \alias{segsnps}
 \alias{clustersegs}
 \alias{gcpctdb}
-\alias{onepass}
 \alias{find.mode}
 \alias{findDiploidLogR}
 \alias{km2class}
@@ -32,7 +31,6 @@ prune.cpt.tree(seg.tree, cval=25)
 segsnps(mat, cval=25, hetscale = FALSE, delta=0)
 clustersegs(out, jointseg, min.nhet=10)
 find.mode(x)
-onepass(x, trace, unif, rho, rhov, prior, posterior, sigma, min.nhet, rho.clust, maxiter, eps)
 findDiploidLogR(out, cnlr)
 km2class(cnlr.med, num.mark)
 acnsplit(lr0, lr1, lorsq)

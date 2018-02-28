@@ -1,3 +1,7 @@
+02/28/2018: v0.6.0
+
+  o Removed emcncf2 and marked as defunct
+
 02/28/2018: v0.5.14
 
   o Deprecating emcncf2 to prepare for removal in the next version.
