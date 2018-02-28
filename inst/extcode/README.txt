@@ -39,7 +39,7 @@ of genome build)
 
  ftp://ftp.ncbi.nlm.nih.gov/snp/organisms/human_9606/VCF/00-common_all.vcf.gz
 
-Use a VCF file that is consistent with the genomeb build used for aligning the
+Use a VCF file that is consistent with the genome build used for aligning the
 sequencing data. [Available snp/genome build versions are in directories
 human_9606_b149_GRCh37p13, human_9606_b150_GRCh37p13, human_9606_b149_GRCh38p7,
 human_9606_b150_GRCh38p7.]
