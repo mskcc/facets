@@ -20,8 +20,8 @@ xx = preProcSample(rcmat)
 oo=procSample(xx,cval=150)
 # EM fit version 1
 fit=emcncf(oo)
-# EM fit version 2
-fit2=emcncf2(oo)
+# EM fit version 2 (removed in v0.6.0)
+# fit2=emcncf2(oo)
 # finished
 
 # Reset to previous random seed
