@@ -2,6 +2,7 @@
 \alias{emcncf2}
 \title{EM estimate of copy number and cellular fraction with clonal and subclonal cluster structure}
 \description{
+  This function is deprecated in v0.5.14 and will be defunct as of v0.6.0 of the facets.
   Uses genotype mixture model to estimate copy number, cellular fraction, and subclonal structures. 
   Uses estimates based on the cnlr.median and mafR as initial values for the EM iteration.
 } 
@@ -30,4 +31,8 @@
     cellular fraction (cf), total (tcn) and lesser (lcn) copy number of
     each segment and their em counterpart (with .em suffix), and a clonal.cluster indicater with clonal.cluster=1 
     indicating the clonal cluster and a higher number (2,3, etc..) indicating subclonal clusters.}
+}
+\details{
+   \emph{This function produced inconsistent fits and hence is deprecated in v0.5.14 and 
+   will be defunct as of v0.6.0 of the facets.}
 }
