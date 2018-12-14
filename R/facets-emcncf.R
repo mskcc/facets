@@ -489,3 +489,8 @@ find.mode=function (x)
   out = list(rho = rho, nmodes = nmodes)
   out
 }
+
+# added emcncf2 to defunct
+emcncf2 <- function() {
+    .Defunct("emcncf", msg="emcncf2 is defunct as of v0.6.0")
+}

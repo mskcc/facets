@@ -1,13 +1,13 @@
 Package: facets
 Type: Package
 Title: Cellular Fraction and Copy Numbers from Tumor Sequencing
-Version: 0.5.14
-Date: 2018-02-28
+Version: 0.6.0
+Date: 2018-12-14
 Author: Venkatraman E. Seshan and Ronglai Shen
 Maintainer: Venkatraman E. Seshan <seshanv@mskcc.org>
 Description: Algorithm to implement Fraction and Allelic Copy number
              Estimate from Tumor/normal Sequencing.
 License: GPL (>= 2)
-Depends: R (>= 2.10), pctGCdata (>= 0.2.0)
+Depends: R (>= 3.0.0), pctGCdata (>= 0.3.0)
 Remotes: veseshan/pctGCdata
 NeedsCompilation: yes

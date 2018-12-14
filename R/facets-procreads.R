@@ -1,11 +1,8 @@
 # heterozygous and keep flags of the SNPs
-procSnps <- function(rcmat, ndepth=35, het.thresh=0.25, snp.nbhd=250, gbuild="hg19", unmatched=FALSE, ndepthmax=1000) {
+procSnps <- function(rcmat, ndepth=35, het.thresh=0.25, snp.nbhd=250, nX=23, unmatched=FALSE, ndepthmax=1000) {
     # keep only chromsomes 1-22 & X for humans and 1-19, X for mice
-    if (gbuild %in% c("hg19", "hg38", "hg18")) {
-        chromlevels <- c(1:22,"X")
-    } else {
-        chromlevels <- c(1:19,"X")
-    }
+    # for other genomes (gbuild = udef) nX is number of autosomes plus 1
+    chromlevels <- c(1:(nX-1),"X")
     chr.keep <- rcmat$Chromosome %in% chromlevels
     # keep only snps with normal read depth between ndepth and 1000
     depthN.keep <- (rcmat$NOR.DP >= ndepth) & (rcmat$NOR.DP < ndepthmax)
@@ -46,7 +43,7 @@ scanSnp <- function(maploc, het, nbhd) {
 }
 
 # obtain logR and logOR from read counts and GC-correct logR
-counts2logROR <- function(mat, gbuild, unmatched=FALSE, f=0.2) {
+counts2logROR <- function(mat, gbuild, unmatched=FALSE, ugcpct=NULL, f=0.2) {
     out <- mat[mat$keep==1,]
     # gc percentage
     out$gcpct <- rep(NA_real_, nrow(out))
@@ -57,7 +54,11 @@ counts2logROR <- function(mat, gbuild, unmatched=FALSE, f=0.2) {
         ii <- which(out$chrom==i)
         # allow for chromosomes with no SNPs i.e. not targeted
         if (length(ii) > 0) {
-            out$gcpct[ii] <- getGCpct(i, out$maploc[ii], gbuild)
+            if (gbuild == "udef") {
+                out$gcpct[ii] <- getGCpct(i, out$maploc[ii], gbuild, ugcpct)
+            } else {
+                out$gcpct[ii] <- getGCpct(i, out$maploc[ii], gbuild)
+            }
         }
     }
     ##### log-ratio with gc correction and maf log-odds ratio steps
