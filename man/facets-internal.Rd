@@ -8,7 +8,6 @@
 \alias{segsnps}
 \alias{clustersegs}
 \alias{gcpctdb}
-\alias{onepass}
 \alias{find.mode}
 \alias{findDiploidLogR}
 \alias{km2class}
@@ -23,16 +22,15 @@
 }
 \usage{
 jointsegsummary(jointseg)
-procSnps(rcmat, ndepth=35, het.thresh=0.25, snp.nbhd=250, gbuild="hg19",
+procSnps(rcmat, ndepth=35, het.thresh=0.25, snp.nbhd=250, nX=23,
 unmatched=FALSE, ndepthmax=1000)
-counts2logROR(mat, gbuild, unmatched=FALSE, f=0.2)
+counts2logROR(mat, gbuild, unmatched=FALSE, ugcpct = NULL, f=0.2)
 scanSnp(maploc, het, nbhd)
 fit.cpt.tree(genomdat, edgelim=10, cval=25, hscl=1, delta=0)
 prune.cpt.tree(seg.tree, cval=25)
 segsnps(mat, cval=25, hetscale = FALSE, delta=0)
 clustersegs(out, jointseg, min.nhet=10)
 find.mode(x)
-onepass(x, trace, unif, rho, rhov, prior, posterior, sigma, min.nhet, rho.clust, maxiter, eps)
 findDiploidLogR(out, cnlr)
 km2class(cnlr.med, num.mark)
 acnsplit(lr0, lr1, lorsq)

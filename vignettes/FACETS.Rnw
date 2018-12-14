@@ -225,34 +225,6 @@ various integer copy number states are drawn as curves for purity ranging from
 0 to 0.95. For a good fit, the segment summaries should be close to one of the
 lines.
 
-The emcncf algorithm allows a separate cellular fraction estimate for each
-segment cluster. In order to impose a clonally constrained structure on $\phi$,
-we included a sequential approach where the modified algorithm starts with a
-single clonal cluster (k=1) with cellular fraction parameter $\phi_1$. We then
-identify segment clusters for which segment cluster-specific estimates is
-non-trivially lower (at least by 0.05 although this can be changed by setting
-desired value for difcf) from the clonally constrained estimates that result in
-a suboptimal fit under k=1. These segment clusters with discordant cellular
-fraction estimates then form a candidate subclonal cluster of events at a lower
-cellular fraction $\phi_2$, and a model is fitted with the joint likelihood
-optimized under k=2. This procedure is iterated until no additional discordance
-in cellular fraction estimates are found, or a specified maximum k is
-reached. In the default parameter setting, a maximum k=5 is allowed although
-user can change it to a higher number if greater intratumor heterogeneity is
-expected. In the output, the estimated $\phi_1$ is the cellular fraction for
-the clonal events and also the tumor purity by definition, and the estimated
-$\phi_k, k>1$ for any subclonal clusters identified in the tumor sample.
-
-<<echo=TRUE,print=FALSE>>=
-fit2=emcncf2(oo)
-@ 
-
-\noindent
-output file 
-<<echo=TRUE,print=FALSE>>=
-head(fit2$cncf)
-@ 
-
 
 %\newpage
 \bibliographystyle{apalike}
