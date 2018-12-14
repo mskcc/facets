@@ -6,8 +6,8 @@
 }
 \usage{
   preProcSample(rcmat, ndepth=35, het.thresh=0.25, snp.nbhd=250, cval=25,
-                deltaCN=0, gbuild=c("hg19", "hg38", "hg18", "mm9", "mm10"),
-                hetscale=TRUE, unmatched=FALSE, ndepthmax=1000)
+       deltaCN=0, gbuild=c("hg19", "hg38", "hg18", "mm9", "mm10", "udef"),
+       ugcpct = NULL, hetscale=TRUE, unmatched=FALSE, ndepthmax=1000)
 }
 \arguments{
   \item{rcmat}{data frame with 6 required columns: \code{Chrom},
@@ -21,7 +21,13 @@
   \item{gbuild}{genome build used for the alignment of the genome.
     Default value is human genome build hg19. Other possibilities are
     hg38 & hg18 for human and mm9 & mm10 for mouse. Chromosomes used for
-    analysis are \code{1-22, X} for humans and \code{1-19} for mouse.}
+    analysis are \code{1-22, X} for humans and \code{1-19} for mouse.
+    Option udef can be used to analyze other genomes.}
+  \item{ugcpct}{If udef is chosen for gbuild then appropriate GC
+    percentage date should be provided through this option. This is a
+    list of numeric vectors that gives the GC percentage windows of
+    width 1000 bases in steps of 100 i.e. 1-1000, 101-1100 etc. for the
+    autosomes and the X chromosome.}
   \item{hetscale}{logical variable to indicate if logOR should get more
     weight in the test statistics for segmentation and clustering. Usually
     only 10\% of snps are hets and hetscale gives the logOR contribution

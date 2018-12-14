@@ -1,6 +1,6 @@
 useDynLib(facets)
 import(stats,graphics)
 importFrom("utils", "read.csv")
-importFrom("grDevices", "colorRampPalette")
+importFrom("grDevices", "colorRampPalette", "rainbow")
 importFrom("pctGCdata", "getGCpct")
 export("readSnpMatrix", "preProcSample", "procSample", "emcncf", "emcncf2", "plotSample","logRlogORspider")

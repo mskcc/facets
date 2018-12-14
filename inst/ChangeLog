@@ -1,6 +1,9 @@
-02/28/2018: v0.6.0
+12/13/2018: v0.6.0
 
   o Removed emcncf2 and marked as defunct
+  o Changed the order of tcn-lcn lines being drawn to address (0,0) masking
+  o Added udef option for gbuild to enable analyzing other genomes (say
+      dog) with user supplied GC percentage data
 
 02/28/2018: v0.5.14
 

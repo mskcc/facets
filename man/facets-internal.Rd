@@ -22,9 +22,9 @@
 }
 \usage{
 jointsegsummary(jointseg)
-procSnps(rcmat, ndepth=35, het.thresh=0.25, snp.nbhd=250, gbuild="hg19",
+procSnps(rcmat, ndepth=35, het.thresh=0.25, snp.nbhd=250, nX=23,
 unmatched=FALSE, ndepthmax=1000)
-counts2logROR(mat, gbuild, unmatched=FALSE, f=0.2)
+counts2logROR(mat, gbuild, unmatched=FALSE, ugcpct = NULL, f=0.2)
 scanSnp(maploc, het, nbhd)
 fit.cpt.tree(genomdat, edgelim=10, cval=25, hscl=1, delta=0)
 prune.cpt.tree(seg.tree, cval=25)

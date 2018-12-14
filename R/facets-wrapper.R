@@ -22,13 +22,24 @@ readSnpMatrix <- function(filename, skip=0L, err.thresh=Inf, del.thresh=Inf, per
     rcmat
 }
 
-preProcSample <- function(rcmat, ndepth=35, het.thresh=0.25, snp.nbhd=250, cval=25, deltaCN=0, gbuild=c("hg19", "hg38", "hg18", "mm9", "mm10"), hetscale=TRUE, unmatched=FALSE, ndepthmax=1000) {
+preProcSample <- function(rcmat, ndepth=35, het.thresh=0.25, snp.nbhd=250, cval=25, deltaCN=0, gbuild=c("hg19", "hg38", "hg18", "mm9", "mm10", "udef"), ugcpct=NULL, hetscale=TRUE, unmatched=FALSE, ndepthmax=1000) {
     gbuild <- match.arg(gbuild)
     # integer value for chromosome X depends on the genome
     if (gbuild %in% c("hg19", "hg38", "hg18")) nX <- 23
     if (gbuild %in% c("mm9", "mm10")) nX <- 20
-    pmat <- procSnps(rcmat, ndepth, het.thresh, snp.nbhd, gbuild, unmatched, ndepthmax)
-    dmat <- counts2logROR(pmat[pmat$rCountT>0,], gbuild, unmatched)
+    if (gbuild == "udef") {
+        if (missing(ugcpct)) {
+            stop("GC percent data should be supplied if udef option is used")
+        } else {
+            nX <- length(ugcpct)
+        }
+    }
+    pmat <- procSnps(rcmat, ndepth, het.thresh, snp.nbhd, nX, unmatched, ndepthmax)
+    if (gbuild == "udef") {
+        dmat <- counts2logROR(pmat[pmat$rCountT>0,], gbuild, unmatched, ugcpct)
+    } else {
+        dmat <- counts2logROR(pmat[pmat$rCountT>0,], gbuild, unmatched)
+    }
     tmp <- segsnps(dmat, cval, hetscale, deltaCN)
     out <- list(pmat=pmat, gbuild=gbuild, nX=nX)
     c(out, tmp)
@@ -49,8 +60,7 @@ procSample <- function(x, cval=150, min.nhet=15, dipLogR=NULL) {
     chrs <- x$chromlevels
     nchr <- length(chrs)
     # get chromlevels from chrs
-    if (x$gbuild %in% c("hg19", "hg38", "hg18")) chromlevels <- c(1:22,"X")[chrs]
-    if (x$gbuild %in% c("mm9", "mm10")) chromlevels <- c(1:19,"X")[chrs]
+    chromlevels <- c(1:(nX-1), "X")[chrs]
     # get the segment summary for the fit in seg.tree
     nsegs <- 0
     for (i in 1:nchr) {
@@ -162,8 +172,8 @@ plotSample <- function(x, emfit=NULL, clustered=FALSE, plot.type=c("em","naive",
         if (length(ii)>0) out$lcn[ii] <- 5 + log10(out$lcn[ii])
         plot(c(0,length(jseg$cnlr)), c(0,max(out$tcn)), type="n", ylab="copy number (nv)", xaxt="n")
         abline(v=chrbdry, lwd=0.25)
-        segments(segstart, out$tcn, segend, out$tcn, lwd=1.75, col=1)
         segments(segstart, out$lcn, segend, out$lcn, lwd=1.75, col=2)
+        segments(segstart, out$tcn, segend, out$tcn, lwd=1.75, col=1)
         # add the cf
         plot(c(0,length(jseg$cnlr)), 0:1, type="n", ylab="", xaxt="n", yaxt="n")
         mtext("cf-nv", side=2, at=0.5, line=0.3, las=2, cex=0.75)
@@ -178,8 +188,8 @@ plotSample <- function(x, emfit=NULL, clustered=FALSE, plot.type=c("em","naive",
         if (length(ii)>0) out$lcn.em[ii] <- 5 + log10(out$lcn.em[ii])
         plot(c(0,length(jseg$cnlr)), c(0,max(out$tcn.em)), type="n", ylab="copy number (em)", xaxt="n")
         abline(v=chrbdry, lwd=0.25)
-        segments(segstart, out$tcn.em, segend, out$tcn.em, lwd=1.75, col=1)
         segments(segstart, out$lcn.em, segend, out$lcn.em, lwd=1.75, col=2)
+        segments(segstart, out$tcn.em, segend, out$tcn.em, lwd=1.75, col=1)
         # add the cf
         plot(c(0,length(jseg$cnlr)), 0:1, type="n", ylab="", xaxt="n", yaxt="n")
         mtext("cf-em", side=2, at=0.5, line=0.2, las=2, cex=0.75)
@@ -215,7 +225,7 @@ logRlogORspider <- function(cncf, dipLogR=0, nfrac=0.005) {
         }
     }
 
-    plot(c(-0.95, 1.8), c(0, 5), type="n", xlab="Expected(logR - dipLogR)", ylab=" Expected(|logOR|)")
+    plot(c(-0.95, 1.8), c(0, 5.2), type="n", xlab="Expected(logR - dipLogR)", ylab=" Expected(|logOR|)")
     l <- 1; i <-1; j <-0
     linecols <- c("black","cyan3","green3","blue")
     lines(logCNR[,l], logACR[,l], lty=1, col=j+1, lwd=1.25)
@@ -232,5 +242,7 @@ logRlogORspider <- function(cncf, dipLogR=0, nfrac=0.005) {
     nhets <- sum(cncf$nhet)
     ii <- cncf$num.mark > nfrac*nsnps & cncf$nhet > nfrac*nhets
     cex <- 0.3 + 2.7*(cncf$num.mark[ii]/sum(0.1*cncf$num.mark[ii]))
-    points(cncf$cnlr.median[ii] - dipLogR, sqrt(abs(cncf$mafR[ii])), cex=cex, col="magenta4", lwd=1.5)
+    chrcol <- rainbow(24)
+    points(cncf$cnlr.median[ii] - dipLogR, sqrt(abs(cncf$mafR[ii])), cex=cex, pch=10, col=chrcol[cncf$chrom[ii]], lwd=1.5)
+    legend(-1, 5.25, paste("chr", c(1:22, "X"), sep=""), ncol=4, pch=10, col=chrcol[1:23], cex=0.65)
 }
