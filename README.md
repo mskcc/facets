@@ -14,6 +14,11 @@ pctGCdata is a required package. So install that also (needs to be done only onc
 ```R
 devtools::install_github("mskcc/pctGCdata")
 ```
+If you get an error message about pctGCdata use
+
+```R
+devtools::install_github("veseshan/pctGCdata")
+```
 
 ## NOTES
 
