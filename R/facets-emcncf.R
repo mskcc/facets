@@ -55,7 +55,7 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
   n=length(logR)  
     
   #diploid genome with purity=1
-  if(all(seg$cf[seg$chrom<nX]==1&seg$tcn[seg$chrom<nX]==2)|max(mafR.clust[seg$chrom<nX & seg$nhet>min.nhet], na.rm = T) < 0.05){
+  if(all(seg$tcn[seg$chrom<nX]==2 & seg$lcn[seg$chrom<nX]%in%c(1, NA))|max(mafR.clust[seg$chrom<nX & seg$nhet>min.nhet], na.rm = T) < 0.05){
     rho=NA
     gamma=2
     out1=data.frame(seg[,1:9],start=startseq,end=endseq,cf.em=seg$cf,tcn.em=seg$tcn,lcn.em=seg$lcn)

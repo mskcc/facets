@@ -1,3 +1,9 @@
+10/30/2019: v0.6.1
+
+  o fixed the emcncf "missing value where TRUE/FALSE needed" error
+  o modified jointsegsummary to be faster (using indices instead of tapply)
+  o procSample modified to get the cumulative segment indicator from seg
+
 12/13/2018: v0.6.0
 
   o Removed emcncf2 and marked as defunct

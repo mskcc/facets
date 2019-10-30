@@ -171,6 +171,11 @@ jointsegsummary <- function(jointseg) {
     jointseg <- jointseg[is.finite(jointseg$seg),]
     # initialize output table
     nsegs <- max(jointseg$seg)
+    # segment start and end indices and number of loci
+    seg.start <- which(diff(c(0,jointseg$seg))==1)
+    seg.end <- c(seg.start[-1]-1, nrow(jointseg))
+    num.mark <- seg.end - seg.start + 1
+    # initialize the output
     out <- as.data.frame(matrix(0, nsegs, 6))
     names(out) <- c("chrom","seg","num.mark","nhet","cnlr.median","mafR")
     # function to estimate maf from valor and lorvar
@@ -187,18 +192,18 @@ jointsegsummary <- function(jointseg) {
         sum(((valor)^2 - lorvar)/lorvar)/sum(1/lorvar)
     }
     # loop over the segments
-    for(seg in 1:nsegs) {
-        zz <- jointseg[jointseg$seg==seg, c("chrom","cnlr","het","valor","lorvar")]
-        zz1 <- zz[zz$het==1,]
-        # output
-        out[seg,1] <- zz$chrom[1]
-        out[seg,2] <- seg
-        out[seg,3] <- nrow(zz)
-        out[seg,4] <- nrow(zz1)
-        out[seg,5] <- median(zz$cnlr)
-        if (out[seg,4] > 0) {
-            # weighted average of squared log-odds ratio minus variance
-            out[seg,6] <- maffun(zz1)
+    for (seg in 1:nsegs) {
+        zhet <- jointseg$het[seg.start[seg]:seg.end[seg]]
+        out[seg, 1] <- jointseg$chrom[seg.start[seg]]
+        out[seg, 2] <- seg
+        out[seg, 3] <- num.mark[seg]
+        out[seg, 4] <- sum(zhet)
+        out[seg, 5] <- median(jointseg$cnlr[seg.start[seg]:seg.end[seg]])
+        if (out[seg, 4] > 0) {
+            zvalor <- jointseg$valor[seg.start[seg]:seg.end[seg]]
+            zlorvar <- jointseg$lorvar[seg.start[seg]:seg.end[seg]]
+            zz1 <- data.frame(valor=zvalor[zhet == 1], lorvar=zlorvar[zhet == 1])
+            out[seg, 6] <- maffun(zz1)
         }
     }
     out

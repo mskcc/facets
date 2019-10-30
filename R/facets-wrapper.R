@@ -63,10 +63,10 @@ procSample <- function(x, cval=150, min.nhet=15, dipLogR=NULL) {
     chromlevels <- c(1:(nX-1), "X")[chrs]
     # get the segment summary for the fit in seg.tree
     nsegs <- 0
+    # jointseg already has a seg variable numbered 1 thru number of segments for each chromosome
     for (i in 1:nchr) {
-        seg.widths <- diff(c(0, sort(unique(x$seg.tree[[i]][,3]))))
-        jseg$seg[jseg$chrom==chrs[i]] <- nsegs + rep(1:length(seg.widths), seg.widths)
-        nsegs <- nsegs + length(seg.widths)
+        jseg$seg[jseg$chrom==chrs[i]] <- nsegs + jseg$seg[jseg$chrom==chrs[i]]
+        nsegs <- max(jseg$seg[jseg$chrom==chrs[i]])
     }
     focalout <- jointsegsummary(jseg)
     # cnlr.median to the left and right
