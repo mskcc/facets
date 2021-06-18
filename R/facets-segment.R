@@ -117,7 +117,7 @@ prune.cpt.tree <- function(seg.tree, cval=25) {
 }
 
 # segment by looping over the chromosomes
-segsnps <- function(mat, cval=25, hetscale=FALSE, delta=0) {
+segsnps <- function(mat, cval=25, hetscale=FALSE, delta=0, nX=23) {
     # keep the original data
     mat0 <- mat
     # keep only rows that have finite values for cnlr
@@ -137,7 +137,7 @@ segsnps <- function(mat, cval=25, hetscale=FALSE, delta=0) {
     # initialize segment indicator
     mat$seg <- rep(NA_real_, nrow(mat))
     # loop over chromosomes
-    nchr <- max(mat$chrom) # IMPACT doesn't have X so only 22
+    nchr <- nX - 1 # IMPACT doesn't have X so only 22
     # possible chromosomes
     chrs <- 1:nchr
     # initialize segmentation tree
@@ -169,15 +169,19 @@ segsnps <- function(mat, cval=25, hetscale=FALSE, delta=0) {
 jointsegsummary <- function(jointseg) {
     # remove snps with NA in segs (due to NA in cnlr)
     jointseg <- jointseg[is.finite(jointseg$seg),]
+    
     # initialize output table
     nsegs <- max(jointseg$seg)
+    
     # segment start and end indices and number of loci
-    seg.start <- which(diff(c(0,jointseg$seg))==1)
+    seg.start <- which(diff(c(0, jointseg$seg)) == 1)
     seg.end <- c(seg.start[-1]-1, nrow(jointseg))
     num.mark <- seg.end - seg.start + 1
+    
     # initialize the output
     out <- as.data.frame(matrix(0, nsegs, 6))
     names(out) <- c("chrom","seg","num.mark","nhet","cnlr.median","mafR")
+    
     # function to estimate maf from valor and lorvar
     maffun <- function(x) {
         # occasional extreme valor can screw maf. so winsorize the maf
@@ -191,8 +195,11 @@ jointsegsummary <- function(jointseg) {
         valor[valor < valor.thresh] <- valor.thresh
         sum(((valor)^2 - lorvar)/lorvar)/sum(1/lorvar)
     }
+
     # loop over the segments
     for (seg in 1:nsegs) {
+        if (is.na(seg.start[seg]) && is.na(seg.end[seg]))
+            break
         zhet <- jointseg$het[seg.start[seg]:seg.end[seg]]
         out[seg, 1] <- jointseg$chrom[seg.start[seg]]
         out[seg, 2] <- seg
@@ -202,6 +209,7 @@ jointsegsummary <- function(jointseg) {
         if (out[seg, 4] > 0) {
             zvalor <- jointseg$valor[seg.start[seg]:seg.end[seg]]
             zlorvar <- jointseg$lorvar[seg.start[seg]:seg.end[seg]]
+
             zz1 <- data.frame(valor=zvalor[zhet == 1], lorvar=zlorvar[zhet == 1])
             out[seg, 6] <- maffun(zz1)
         }

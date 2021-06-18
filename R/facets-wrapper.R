@@ -10,8 +10,8 @@ readSnpMatrix <- function(filename, skip=0L, err.thresh=Inf, del.thresh=Inf, per
                                   col_types=cols(
                                       Chromosome = col_character(),
                                       Position = col_integer(),
-                                      Ref = col_character(),
-                                      Alt = col_character(),
+                                      Ref = col_skip(),
+                                      Alt = col_skip(),
                                       File1R = col_integer(),
                                       File1A = col_integer(),
                                       File1E = col_integer(),
@@ -28,15 +28,17 @@ readSnpMatrix <- function(filename, skip=0L, err.thresh=Inf, del.thresh=Inf, per
         if (grepl("chr",pileup$Chromosome[1])) {
             pileup$Chromosome <- gsub("chr", "", pileup$Chromosome)
         }
-        # remove loci where errors and deletions exceeded thresholds
-        ii <- which(pileup$File1E <= err.thresh & pileup$File1D <= del.thresh & pileup$File2E <= err.thresh & pileup$File2D <= del.thresh)
-        rcmat <- pileup[ii, 1:2]
-        rcmat$NOR.DP <- pileup$File1R[ii] + pileup$File1A[ii]
-        rcmat$NOR.RD <- pileup$File1R[ii]
-        rcmat$TUM.DP <- pileup$File2R[ii] + pileup$File2A[ii]
-        rcmat$TUM.RD <- pileup$File2R[ii]
+
+        rcmat <- pileup %>%
+            dplyr::filter(pileup$File1E <= err.thresh & pileup$File1D <= del.thresh & pileup$File2E <= err.thresh & pileup$File2D <= del.thresh) %>%
+            tibble::add_column(NOR.DP = pileup$File1R + pileup$File1A) %>%
+            dplyr::rename(NOR.RD = File1R) %>%
+            tibble::add_column(TUM.DP = pileup$File2R + pileup$File2A) %>%
+            dplyr::rename(TUM.RD = File2R) %>%
+            dplyr::select(-contains("File"))
     }
-    rcmat
+    
+    as.data.frame(rcmat)
 }
 
 preProcSample <- function(rcmat, ndepth=35, het.thresh=0.25, snp.nbhd=250, cval=25, deltaCN=0, gbuild=c("hg19", "hg38", "hg18", "mm9", "mm10", "udef"), ugcpct=NULL, hetscale=TRUE, unmatched=FALSE, ndepthmax=1000) {
@@ -51,33 +53,42 @@ preProcSample <- function(rcmat, ndepth=35, het.thresh=0.25, snp.nbhd=250, cval=
             nX <- length(ugcpct)
         }
     }
-    pmat <- procSnps(rcmat, ndepth, het.thresh, snp.nbhd, nX, unmatched, ndepthmax)
+
+    rcmat <- procSnps(rcmat, ndepth, het.thresh, snp.nbhd, nX, unmatched, ndepthmax)
+    
     if (gbuild == "udef") {
-        dmat <- counts2logROR(pmat[pmat$rCountT>0,], gbuild, unmatched, ugcpct)
+        dmat <- counts2logROR(rcmat, gbuild, unmatched, ugcpct, nX=nX)
     } else {
-        dmat <- counts2logROR(pmat[pmat$rCountT>0,], gbuild, unmatched)
+        dmat <- counts2logROR(rcmat, gbuild, unmatched, nX=nX)
     }
+    
     tmp <- segsnps(dmat, cval, hetscale, deltaCN)
-    out <- list(pmat=pmat, gbuild=gbuild, nX=nX)
+    out <- list(pmat=rcmat, gbuild=gbuild, nX=nX)
     c(out, tmp)
 }
 
 procSample <- function(x, cval=150, min.nhet=15, dipLogR=NULL) {
     # ensure availability of seg.tree
     if (is.null(x$seg.tree)) stop("seg.tree is not available")
+
     # get the numeric value of chromosome X
     nX <- x$nX
+
     # make sure that original cval is smaller than current one
     cval.fit <- attr(x$seg.tree, "cval")
     if (cval.fit > cval) stop("original fit used cval = ", cval.fit)
+
     # jointseg etc
     jseg <- x$jointseg
     jseg <- jseg[is.finite(jseg$cnlr),]
+    
     # chromosomes with data and their counts
     chrs <- x$chromlevels
     nchr <- length(chrs)
+    
     # get chromlevels from chrs
     chromlevels <- c(1:(nX-1), "X")[chrs]
+
     # get the segment summary for the fit in seg.tree
     nsegs <- 0
     # jointseg already has a seg variable numbered 1 thru number of segments for each chromosome
@@ -86,13 +97,17 @@ procSample <- function(x, cval=150, min.nhet=15, dipLogR=NULL) {
         nsegs <- max(jseg$seg[jseg$chrom==chrs[i]])
     }
     focalout <- jointsegsummary(jseg)
+    
     # cnlr.median to the left and right
     cnlr.med.l <- c(0, focalout$cnlr.median[-nsegs])
     cnlr.med.r <- c(focalout$cnlr.median[-1], 0)
+    
     # mad of cnlr noise
     cnlr.mad <- mad(jseg$cnlr - rep(focalout$cnlr.median, focalout$num.mark))
+    
     # segments that show focal changes have big jump in cnlr.median
     focalout$focal <- 1*(focalout$cnlr.median > pmax(cnlr.med.l, cnlr.med.r)+3*cnlr.mad) + 1*(focalout$cnlr.median < pmin(cnlr.med.l, cnlr.med.r)-3*cnlr.mad)
+    
     # get the segments for the specified cval 
     nsegs <- 0
     for (i in 1:nchr) {
@@ -100,14 +115,19 @@ procSample <- function(x, cval=150, min.nhet=15, dipLogR=NULL) {
         jseg$seg[jseg$chrom==chrs[i]] <- nsegs + rep(1:length(seg.widths), seg.widths)
         nsegs <- nsegs + length(seg.widths)
     }
+    
     # adding the focal change segments - need a jump at the beginning and end
     jseg$seg0 <- jseg$seg # detected segments
+    
     # jump at the beginning (twice the height)
     jseg$seg <- jseg$seg + rep(cumsum(2*focalout$focal), focalout$num.mark)
+    
     # drop back for the focal segment to get the steps right
     jseg$seg <- jseg$seg - rep(focalout$focal, focalout$num.mark)
+    
     # focal segment could already be in; so change seg indicator
     jseg$seg <- cumsum(c(1, 1*(diff(jseg$seg) > 0)))
+    
     # segment summaries
     out <- jointsegsummary(jseg)
     # cluster the segments
@@ -128,18 +148,23 @@ procSample <- function(x, cval=150, min.nhet=15, dipLogR=NULL) {
 
 plotSample <- function(x, emfit=NULL, clustered=FALSE, plot.type=c("em","naive","both","none"), sname=NULL) {
     def.par <- par(no.readonly = TRUE) # save default, for resetting...
+    
     # plot.type
     plot.type <- match.arg(plot.type)
+
     # layout of multi panel figure
     if (plot.type=="none") layout(matrix(1:2, ncol=1))
     if (plot.type=="em") layout(matrix(rep(1:4, c(9,9,6,1)), ncol=1))
     if (plot.type=="naive") layout(matrix(rep(1:4, c(9,9,6,1)), ncol=1))
     if (plot.type=="both") layout(matrix(rep(1:6, c(9,9,6,1,6,1)), ncol=1))
     par(mar=c(0.25,3,0.25,1), mgp=c(1.75, 0.6, 0), oma=c(3,0,1.25,0))
+
     # raw data used for joint segmentation
     jseg <- x$jointseg
+
     # chromosome boundaries
-    chrbdry <- which(diff(jseg$chrom) != 0)
+    chrbdry <- which(diff(as.numeric(jseg$chr[jseg$chr != "X"])) != 0)
+
     if (missing(emfit)) {
         out <- x$out
         if (plot.type=="em" | plot.type=="both") {
@@ -153,6 +178,11 @@ plotSample <- function(x, emfit=NULL, clustered=FALSE, plot.type=c("em","naive",
         out$lcn <- x$out$lcn
         out$cf <- x$out$cf
     }
+    
+    # Filter out chr X
+    out <- out[out$chr != 'X',]
+    out$chr = as.numeric(out$chr)
+    
     # determine which of the cnlr.median & mafR to show
     if (clustered) {
         cnlr.median <- out$cnlr.median.clust
@@ -163,23 +193,27 @@ plotSample <- function(x, emfit=NULL, clustered=FALSE, plot.type=c("em","naive",
         mafR <- out$mafR
     }
     mafR <- abs(mafR)
+
     # chromosome colors
     chrcol <- 1+rep(out$chr-2*floor(out$chr/2), out$num.mark)
     nn <- cumsum(table(jseg$chrom[is.finite(jseg$cnlr)]))
     segbdry <- cumsum(c(0,out$num.mark))
     segstart <- segbdry[-length(segbdry)]
     segend <- segbdry[-1]
+
     # plot the logR data and segment medians
     plot(jseg$cnlr[is.finite(jseg$cnlr)], pch=".", cex=2, col = c("grey","lightblue","azure4","slateblue")[chrcol], ylab="log-ratio", xaxt="n")
     abline(v=chrbdry, lwd=0.25)
     abline(h=median(jseg$cnlr, na.rm=TRUE), col="green2")
     abline(h = x$dipLogR, col = "magenta4")
     segments(segstart, cnlr.median, segend, cnlr.median, lwd=1.75, col=2)
+
     # plot the logOR data and mafR
     plot(jseg$valor[is.finite(jseg$cnlr)], pch=".", cex=2.5, col = c("grey","lightblue","azure4","slateblue")[chrcol], ylab="log-odds-ratio", ylim=c(-4,4), xaxt="n")
     abline(v=chrbdry, lwd=0.25)
     segments(segstart, sqrt(mafR), segend, sqrt(mafR), lwd=1.75, col=2)
     segments(segstart, -sqrt(mafR), segend, -sqrt(mafR), lwd=1.75, col=2)
+
     # naive copy number and cellular faction pieces
     cfpalette <- c(colorRampPalette(c("white", "steelblue"))(10),"bisque2")
     if (plot.type=="naive" | plot.type=="both") {
@@ -197,6 +231,7 @@ plotSample <- function(x, emfit=NULL, clustered=FALSE, plot.type=c("em","naive",
         cfcol <- cfpalette[round(10*out$cf+0.501)]
         rect(segstart, 0, segend, 1, col=cfcol, border=NA)
     }
+
     # EM copy number and cellular faction pieces
     if (plot.type=="em" | plot.type=="both") {
         # plot the estimated copy numbers and cf
@@ -216,10 +251,12 @@ plotSample <- function(x, emfit=NULL, clustered=FALSE, plot.type=c("em","naive",
     
     # now add the chromosome ticks on x-axis
     chromlevels <- x$chromlevels
+
     # just make sure chromlevels actually exists
     if (is.null(chromlevels)) chromlevels <- 1:length(nn)
     axis(labels=chromlevels, side=1, at=(nn+c(0,nn[-length(nn)]))/2, cex=0.65)
     mtext(side=1, line=1.75, "Chromosome", cex=0.8)
+
     if (!missing(sname)) mtext(sname, side=3, line=0, outer=TRUE, cex=0.8)
     par(def.par)  #- reset to default
 }
@@ -228,11 +265,14 @@ logRlogORspider <- function(cncf, dipLogR=0, nfrac=0.005) {
     rho <- seq(0, 0.95, by=0.01)
     nrho <- length(rho)
     logACR <- logCNR <- matrix(0, nrho, 19)
+    
     # initialize index
     l <- 1
+
     # one copy loss
     logCNR[,l] <- log2(2*(1-rho) + 1*rho) -1
     logACR[,l] <- log(1/(1-rho))
+
     # integer copy numbers (clonal)
     for(i in 2:7) {
         for(j in 0:floor(i/2)) {
@@ -260,6 +300,6 @@ logRlogORspider <- function(cncf, dipLogR=0, nfrac=0.005) {
     ii <- cncf$num.mark > nfrac*nsnps & cncf$nhet > nfrac*nhets
     cex <- 0.3 + 2.7*(cncf$num.mark[ii]/sum(0.1*cncf$num.mark[ii]))
     chrcol <- rainbow(24)
-    points(cncf$cnlr.median[ii] - dipLogR, sqrt(abs(cncf$mafR[ii])), cex=cex, pch=10, col=chrcol[cncf$chrom[ii]], lwd=1.5)
+    points(cncf$cnlr.median[ii] - dipLogR, sqrt(abs(cncf$mafR[ii])), cex=cex, pch=10, col=chrcol[as.numeric(cncf$chrom[ii])], lwd=1.5)
     legend(-1, 5.25, paste("chr", c(1:22, "X"), sep=""), ncol=4, pch=10, col=chrcol[1:23], cex=0.65)
 }
