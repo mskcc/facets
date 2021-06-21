@@ -93,7 +93,7 @@ findDiploidLogR <- function(out, cnlr) {
         if (diff(dipLogR) < log2(1.25)) 
             flags <- c(flags, "possibly subclonal 2+2 states present")
     # cat("dipLogR =", dipLogR, "\n")
-    # print(out0)
+
     # first remove the balanced segs
     out1 <- out0[-bsegs,]
     # is dipLogR[1] the 1+1 level; if so all lower cnlr.med values are losses
@@ -121,7 +121,6 @@ findDiploidLogR <- function(out, cnlr) {
         out2 <- t(sapply(1:nrow(out1), function(i, dlr, out1) {
                              acnsplit(dlr, out1$cnlr.median[i], out1$mafR[i])
                          }, dipLogR[1], out1))
-        # print(out2)
         out1$acn <- apply(out2[,2*(1:3), drop=FALSE], 1, which.min)
         # proportion of genome that fits 1+0, 2+0 & 3+0
         acn1prop <- sum(out1$num.mark[out1$acn == 1])/nsnps
@@ -207,7 +206,7 @@ findDiploidLogR <- function(out, cnlr) {
             }
         }
         #plot(ocnlevels0, dev1, pch=16, col=colr)
-        #print(dev1)
+
         cn2logR <- ocnlevels0[which.min(dev1)]
         # if wgd.likely is non-null add dipLogR[1]
         if (!is.null(wgd.likely)) {

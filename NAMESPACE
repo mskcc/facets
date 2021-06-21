@@ -1,5 +1,6 @@
 useDynLib(facets)
 import(stats,graphics)
+import("tidyverse")
 importFrom("utils", "read.csv")
 importFrom("grDevices", "colorRampPalette", "rainbow")
 importFrom("pctGCdata", "getGCpct")
