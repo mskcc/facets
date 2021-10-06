@@ -1,4 +1,4 @@
-useDynLib(facets)
+useDynLib(facets, .registration = TRUE)
 import(stats,graphics)
 importFrom("utils", "read.csv")
 importFrom("grDevices", "colorRampPalette", "rainbow")
