@@ -89,7 +89,7 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
   #if(!all(is.na(rhov.lsd[seglen>35]))){
   #  naive=max(by(rhov.lsd[seglen>35],segclust[seglen>35],function(x)mean(x,na.rm=T)),na.rm=T)
   #}else{
-  naive=quantile(rhov.lsd,prob=0.75,na.rm=T)
+  naive=quantile(rhov.lsd,probs=0.75,na.rm=T)
   #}
 
   
