@@ -21,8 +21,6 @@ jobs:
           - {os: ubuntu-20.04,   r: 'devel'   }
           - {os: ubuntu-20.04,   r: 'release' }
           - {os: ubuntu-20.04,   r: 'oldrel'  }
-          - {os: ubuntu-20.04,   r: '3.5'     }
-          - {os: ubuntu-20.04,   r: '3.4'     }
           - {os: ubuntu-20.04,   r: '3.3'     }
 
     env:
@@ -42,6 +40,7 @@ jobs:
       - uses: r-lib/actions/setup-tinytex@v1
       - run: |
           tlmgr --version
+          tlmgr install ae  ## Needed by vignette
           tlmgr list --only-installed
 
       - uses: r-lib/actions/setup-pandoc@master
