@@ -147,7 +147,7 @@ plotSample <- function(x, emfit=NULL, clustered=FALSE, plot.type=c("em","naive",
     }
     mafR <- abs(mafR)
     # chromosome colors
-    chrcol <- 1+rep(out$chr-2*floor(out$chr/2), out$num.mark)
+    chrcol <- 1+rep(out$chrom-2*floor(out$chrom/2), out$num.mark)
     nn <- cumsum(table(jseg$chrom[is.finite(jseg$cnlr)]))
     segbdry <- cumsum(c(0,out$num.mark))
     segstart <- segbdry[-length(segbdry)]

@@ -39,7 +39,7 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
   
   emflags=NULL
   
-  var=var(jointseg$cnlr,na.rm=T)    
+  var=var(jointseg$cnlr,na.rm=TRUE)    
   if(var>0.6){
     logR=rep(seglogr,nmark)
     emflags=paste(emflags,"Noisy sample, Calls can be unreliable.",sep=" ")
@@ -55,14 +55,14 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
   n=length(logR)  
     
   #diploid genome with purity=1
-  if(all(seg$tcn[seg$chrom<nX]==2 & seg$lcn[seg$chrom<nX]%in%c(1, NA))|max(mafR.clust[seg$chrom<nX & seg$nhet>min.nhet], na.rm = T) < 0.05){
+  if(all(seg$tcn[seg$chrom<nX]==2 & seg$lcn[seg$chrom<nX]%in%c(1, NA))|max(mafR.clust[seg$chrom<nX & seg$nhet>min.nhet], na.rm = TRUE) < 0.05){
     rho=NA
     gamma=2
     out1=data.frame(seg[,1:9],start=startseq,end=endseq,cf.em=seg$cf,tcn.em=seg$tcn,lcn.em=seg$lcn)
     emflags=paste(emflags,"Insufficient information to estimate purity. Likely diplod or purity too low.",sep=" ")
     out=list(purity=rho,ploidy=gamma,dipLogR=dipLogR,cncf=out1, emflags=emflags)
     return(out)    
-    stop("Insufficient information",call.=F)
+    stop("Insufficient information",call.=FALSE)
   }
 
   
@@ -87,9 +87,9 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
   rhov.lsd[chr>=nX&rhov.lsd==1]=NA
   
   #if(!all(is.na(rhov.lsd[seglen>35]))){
-  #  naive=max(by(rhov.lsd[seglen>35],segclust[seglen>35],function(x)mean(x,na.rm=T)),na.rm=T)
+  #  naive=max(by(rhov.lsd[seglen>35],segclust[seglen>35],function(x)mean(x,na.rm=TRUE)),na.rm=TRUE)
   #}else{
-  naive=quantile(rhov.lsd,prob=0.75,na.rm=T)
+  naive=quantile(rhov.lsd,probs=0.75,na.rm=TRUE)
   #}
 
   
@@ -101,9 +101,9 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
   
   rho=NA
   if(length(loh)>2){
-    rho=max(by(rhov.lsd[loh],segclust[loh],function(x)mean(x,na.rm=T)),na.rm=T)
+    rho=max(by(rhov.lsd[loh],segclust[loh],function(x)mean(x,na.rm=TRUE)),na.rm=TRUE)
   }else{  
-    if(length(na.omit(rhov.lsd.subset))>1)rho=max(by(rhov.lsd.subset,segclust,function(x)mean(x,na.rm=T)),na.rm=T)
+    if(length(na.omit(rhov.lsd.subset))>1)rho=max(by(rhov.lsd.subset,segclust,function(x)mean(x,na.rm=TRUE)),na.rm=TRUE)
   }
   
   if(is.na(rho)|rho<0.2)rho=naive
@@ -211,26 +211,26 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
       d=d1*d2
       hetsum=d[rep(het[idx]==1,ng)]
       homsum=d1[rep(het[idx]==0,ng)]
-      d=sum(hetsum[hetsum<Inf],na.rm=T)+sum(homsum[homsum<Inf],na.rm=T)
+      d=sum(hetsum[hetsum<Inf],na.rm=TRUE)+sum(homsum[homsum<Inf],na.rm=TRUE)
       if(!is.na(d)&d>0&d<Inf){loglik=loglik+log(d)}
       
       #heterozygous positions contribute to logR and logOR
-      numerator1=matrix(d1*d2,nrow=length(idx),ncol=ng,byrow=F)
+      numerator1=matrix(d1*d2,nrow=length(idx),ncol=ng,byrow=FALSE)
       numerator1=sweep(numerator1,MARGIN=2,prior[s,],`*`)
       
       #homozygous positions contribute to logR only
-      numerator0=matrix(d1,nrow=length(idx),ncol=ng,byrow=F)
+      numerator0=matrix(d1,nrow=length(idx),ncol=ng,byrow=FALSE)
       numerator0=sweep(numerator0,MARGIN=2,prior[s,],`*`)
       
       numerator=numerator1
       numerator[het[idx]==0,]=numerator0[het[idx]==0,]
       
-      tmp=apply(numerator,1,function(x)x/(sum(x,na.rm=T)+1e-5))
+      tmp=apply(numerator,1,function(x)x/(sum(x,na.rm=TRUE)+1e-5))
       #pmatrix=rbind(pmatrix,t(tmp))
       pmatrix[idx,]=t(tmp)
       
       #update prior
-      prior[s,]=apply(t(tmp),2,function(x)mean(x,na.rm=T))
+      prior[s,]=apply(t(tmp),2,function(x)mean(x,na.rm=TRUE))
     }
 
     ########
@@ -245,20 +245,20 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
     
       idx=which(clust==i)
       idxhet=which(clust==i&het==1)
-      sump=apply(pmatrix[idx,,drop=F],2,function(x)sum(x,na.rm=T))
+      sump=apply(pmatrix[idx,,drop=FALSE],2,function(x)sum(x,na.rm=TRUE))
       
       #if probability is too small (highly uncertain), use lsd estimates for stability 
       if(all(is.na(prior[i,]))){
         prior[i,]=prior.old[i,]
         }else{
-        if(sum(prior[i,],na.rm=T)==0)prior[i,]=prior.old[i,]
+        if(sum(prior[i,],na.rm=TRUE)==0)prior[i,]=prior.old[i,]
         }
       
-      if(max(prior[i,],na.rm=T)>0.05){   
+      if(max(prior[i,],na.rm=TRUE)>0.05){   
         
       ##calculate rho for the most likely genotype(s) for segment i
       ##if there more more than one likely candidates save two and pick one with higher CF
-      #top2=sort(prior[i,],decreasing=T)[1:2]
+      #top2=sort(prior[i,],decreasing=TRUE)[1:2]
       #if(top2[2]>0.05&abs(diff(top2))<0.0001){
       #    sump[prior[i,]<quantile(prior[i,],(ng-2)/ng)]=NA
       # }else{
@@ -268,11 +268,11 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
       sump[prior[i,]<max(prior[i,])]=NA
       
         ##update k
-        tmphet=pmatrix[idxhet,,drop=F]
+        tmphet=pmatrix[idxhet,,drop=FALSE]
         v1=as.vector((logOR[idxhet]^2-logORvar[idxhet])/logORvar[idxhet])
         v2=as.vector(1/logORvar[idxhet])
-        sumdphet=apply(sweep(tmphet,MARGIN=1, v1, `*`), 2,function(x)sum(x,na.rm=T))
-        sumphet=apply(sweep(tmphet,MARGIN=1,v2,`*`), 2,function(x)sum(x,na.rm=T))
+        sumdphet=apply(sweep(tmphet,MARGIN=1, v1, `*`), 2,function(x)sum(x,na.rm=TRUE))
+        sumphet=apply(sweep(tmphet,MARGIN=1,v2,`*`), 2,function(x)sum(x,na.rm=TRUE))
         sumphet[is.na(sump)]=NA
                 
         #CF from logOR    
@@ -285,16 +285,16 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
         if(all(nhet[segclust==i]<min.nhet))a=rep(NA,ng)
         
         #CF from logR
-        tmp=pmatrix[idx,,drop=F]
+        tmp=pmatrix[idx,,drop=FALSE]
         v=as.vector(logR.adj[idx])
-        sumdp=apply(sweep(tmp,MARGIN=1,v,`*`),2,function(x)sum(x,na.rm=T))   
+        sumdp=apply(sweep(tmp,MARGIN=1,v,`*`),2,function(x)sum(x,na.rm=TRUE))   
         mu.hat=sumdp/sump #mu.hat
         aa=2*(2^mu.hat-1)/(t-2)
         aa[abs(aa)==Inf]=NA
         aa[aa<=0]=NA
         aa[aa>1]=1
         
-        aaa=pmax(a,aa,na.rm=T)
+        aaa=pmax(a,aa,na.rm=TRUE)
         #degenerate cases
         #homozygous deletion (0) and balanced gain (AABB, AAABBB), maf=0.5, purity information comes from logr only
         aaa[c(1,8,13)]=aa[c(1,8,13)]  
@@ -307,18 +307,18 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
         ##if there are two likely genotype, choose one with higher purity (e.g.,AAB 80% or AAAB 50%)
         ##if the higher CF exceeds sample purity, then the lower CF is the right one
         #if(all(is.na(aaa))){which.geno[i]=which.max(prior[i,])}else{
-        #  which.geno[i]=ifelse(max(aaa,na.rm=T)<rho,which.max(aaa),which.min(aaa))
+        #  which.geno[i]=ifelse(max(aaa,na.rm=TRUE)<rho,which.max(aaa),which.min(aaa))
         #}
         
         which.geno[i]=which.max(prior[i,])
         
         postprob=pmatrix[idx,which.geno[i]]
-        posterior[i]=mean(postprob[postprob>0],na.rm=T)
+        posterior[i]=mean(postprob[postprob>0],na.rm=TRUE)
         
         #update sigma
-        y=as.vector(logR.adj[idx])*pmatrix[idx,,drop=F]
-        r=y-mu[i,]*pmatrix[idx,,drop=F]
-        ss=sqrt(sum(r[,which.geno[i]]^2,na.rm=T)/sum(pmatrix[idx,which.geno[i]])) 
+        y=as.vector(logR.adj[idx])*pmatrix[idx,,drop=FALSE]
+        r=y-mu[i,]*pmatrix[idx,,drop=FALSE]
+        ss=sqrt(sum(r[,which.geno[i]]^2,na.rm=TRUE)/sum(pmatrix[idx,which.geno[i]])) 
         sigma[i]=ifelse(is.na(ss),0.5,ss)
         
         aaa[setdiff(1:ng,which.geno[i])]=NA  
@@ -342,9 +342,9 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
     rhov.long[chr>=nX]=NA
     
     if(sum(!is.na(rhov.long[seglen>35]))>1){
-     meanrho=max(by(rhov.long[seglen>35],segclust[seglen>35],function(x)mean(x,na.rm=T)),na.rm=T)
+     meanrho=max(by(rhov.long[seglen>35],segclust[seglen>35],function(x)mean(x,na.rm=TRUE)),na.rm=TRUE)
     }else{
-     meanrho=quantile(rhov.long,prob=0.75,na.rm=T) #if no big segments, probably very noisy sample or over-segemnted. can't estimate rho accurately, just take upper quatile
+     meanrho=quantile(rhov.long,prob=0.75,na.rm=TRUE) #if no big segments, probably very noisy sample or over-segemnted. can't estimate rho accurately, just take upper quatile
     }
     
     rhov.long.subset=rhov.long
@@ -358,7 +358,7 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
       rho=naive
       }else{  
        if(lowpur){          
-          rho=max(rhov.long,na.rm=T)     
+          rho=max(rhov.long,na.rm=TRUE)     
           rhov=rep(rho,nclust)      
         }else{       
             nona=na.omit(rhov.long)        
@@ -369,16 +369,16 @@ emcncf=function(x,trace=FALSE,unif=FALSE,min.nhet=15,maxiter=10,eps=1e-3){
               rhov.loh=rep(NA,length(rhov.long))
               rhov.loh[loh]=rhov.long[loh]
               if(length(loh)>1 & !all(is.na(rhov.loh))){
-                rho=max(by(rhov.loh,segclust,function(x)mean(x,na.rm=T)),na.rm=T)
+                rho=max(by(rhov.loh,segclust,function(x)mean(x,na.rm=TRUE)),na.rm=TRUE)
               }else{
-                if(length((na.omit(rhov.long.subset)))>1&dipLogR< -0.3)rho=max(by(rhov.long.subset,segclust,function(x)mean(x,na.rm=T)),na.rm=T)
+                if(length((na.omit(rhov.long.subset)))>1&dipLogR< -0.3)rho=max(by(rhov.long.subset,segclust,function(x)mean(x,na.rm=TRUE)),na.rm=TRUE)
               }
             }
           }
          }
   
     if(is.na(rho))rho=meanrho
-    dif = quantile(abs(rhov-rhov.old),0.9,na.rm=T)
+    dif = quantile(abs(rhov-rhov.old),0.9,na.rm=TRUE)
 
     if(trace) {
       cat('iter:', iter, '\n')
@@ -480,11 +480,11 @@ find.mode=function (x)
   len = cumsum(difseq$lengths)
   modes.pos = len[which(difseq$values == 1)] + 1
   modes = y[modes.pos]
-  idx = order(modes, decreasing = T)
+  idx = order(modes, decreasing = TRUE)
   signodes = modes.pos[which(modes > 1.5)]
   if (length(signodes) >= 2) {
-    #rho = max(den$x[modes.pos[idx]],na.rm=T)
-    rho = max(den$x[signodes],na.rm=T)
+    #rho = max(den$x[modes.pos[idx]],na.rm=TRUE)
+    rho = max(den$x[signodes],na.rm=TRUE)
   }
   out = list(rho = rho, nmodes = nmodes)
   out

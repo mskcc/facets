@@ -90,7 +90,7 @@ library(facets)
 
 \noindent
 We first perform various pre-processing steps to prepare the data for
-segmenation analysis. Positions with total read count below a lower depth
+segmentation analysis. Positions with total read count below a lower depth
 threshold (default 35, use ndepth to change the default value) or exceed an
 upper threshold (> 1000) (excessive coverage) in the matched normal sample were
 removed. We scan all positions by 150-250 bp interval to space out SNP-dense
@@ -119,8 +119,8 @@ xx = preProcSample(rcmat)
 
 \noindent
 A bivariate genome segmentation is performed on logR and logOR by extending the
-CBS algotithm \citep{olshen04,venkat07} to the bivariate scenario using a $T^2$
-statistic for identifiying change points. If the maximal statistic is greater
+CBS algorithm \citep{olshen04,venkat07} to the bivariate scenario using a $T^2$
+statistic for identifying change points. If the maximal statistic is greater
 than a pre-determined critical value (cval), we declare a change exists and the
 change points that maximize this statistic. Lower cval lead to higher
 sensitivity for small changes. After segmentation, a clustering process is
@@ -208,7 +208,7 @@ plotSample(x=oo,emfit=fit)
 The top panel of the figure displays logR with chromosomes alternating in blue
 and gray. The green line indicates the median logR in the sample. The purple
 line indicates the logR of the diploid state. The second panel displays
-logOR. Segment means are ploted in red lines. The third panel plots the total
+logOR. Segment means are plotted in red lines. The third panel plots the total
 (black) and minor (red) copy number for each segment. The bottom bar shows the
 associated cellular fraction (cf). Dark blue indicates high cf. Light blue
 indicates low cf. Beige indicates a normal segment (total=2,minor=1).
