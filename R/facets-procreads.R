@@ -8,27 +8,25 @@ procSnps <- function(rcmat, ndepth=35, het.thresh=0.25, snp.nbhd=250, nX=23, unm
     depthN.keep <- (rcmat$NOR.DP >= ndepth) & (rcmat$NOR.DP < ndepthmax)
     # reduce the data frame to these snps
     rcmat <- rcmat[chr.keep & depthN.keep,]
-    # output data frame
-    out <- list()
-    out$chrom <- rcmat$Chromosome
-    out$maploc <- rcmat$Position
-    out$rCountT <- rcmat$TUM.DP
-    out$rCountN <- rcmat$NOR.DP
-    out$vafT <- 1 - rcmat$TUM.RD/rcmat$TUM.DP
-    out$vafN <- 1 - rcmat$NOR.RD/rcmat$NOR.DP
+    # output data frame; will use rcmat to return output instead of a new one
+    row.names(rcmat) <- NULL # reset row names so that it's 1:nsnps
+    rcmat$NOR.RD = 1 - rcmat$NOR.RD/rcmat$NOR.DP
+    rcmat$TUM.RD = 1 - rcmat$TUM.RD/rcmat$TUM.DP
+    names(rcmat) = c("chrom", "maploc", "rCountN", "vafN", "rCountT", "vafT")
     # make chromosome ordered and numeric
-    out$chrom <- as.numeric(ordered(out$chrom, levels=chromlevels))
+    rcmat$chrom <- as.numeric(ordered(rcmat$chrom, levels = chromlevels))
     # call a snp heterozygous if min(vafN, 1-mafN) > het.thresh
     if (unmatched) {
         if (het.thresh == 0.25) het.thresh <- 0.1
-        out$het <- 1*(pmin(out$vafT, 1-out$vafT) > het.thresh & out$rCountT >= 50)
-    } else {
-        out$het <- 1*(pmin(out$vafN, 1-out$vafN) > het.thresh)
+        rcmat$het <- 1 * (pmin(rcmat$vafT, 1 - rcmat$vafT) > het.thresh & rcmat$rCountT >= 50)
+    }
+    else {
+        rcmat$het <- 1 * (pmin(rcmat$vafN, 1 - rcmat$vafN) > het.thresh)
     }
     # scan maploc for snps that are close to one another (within snp.nbhd bases)
     # heep all the hets (should change if too close) and only one from a nbhd
-    out$keep <- scanSnp(out$maploc, out$het, snp.nbhd)
-    as.data.frame(out)
+    rcmat$keep <- scanSnp(rcmat$maploc, rcmat$het, snp.nbhd)
+    rcmat[,c(1,2,5,3,6,4,7,8)]
 }
 
 scanSnp <- function(maploc, het, nbhd) {
@@ -43,13 +41,13 @@ scanSnp <- function(maploc, het, nbhd) {
 }
 
 # obtain logR and logOR from read counts and GC-correct logR
-counts2logROR <- function(mat, gbuild, unmatched=FALSE, ugcpct=NULL, f=0.2) {
-    out <- mat[mat$keep==1,]
+counts2logROR <- function(out, gbuild, unmatched=FALSE, ugcpct=NULL, f=0.2) {
+    out <- out[out$keep==1,]
     # gc percentage
     out$gcpct <- rep(NA_real_, nrow(out))
     # get GC percentages from pctGCdata package
     # loop thru chromosomes
-    nchr <- max(mat$chrom) # IMPACT doesn't have X so only 22
+    nchr <- max(out$chrom) # IMPACT doesn't have X so only 22
     for (i in 1:nchr) {
         ii <- which(out$chrom==i)
         # allow for chromosomes with no SNPs i.e. not targeted
