@@ -16,12 +16,11 @@ jobs:
         config:
           - {os: windows-latest, r: 'devel'   }
           - {os: windows-latest, r: 'release' }
-          - {os: macOS-latest,   r: 'devel'   }
+#          - {os: macOS-latest,   r: 'devel'   }
           - {os: macOS-latest,   r: 'release' }
           - {os: ubuntu-20.04,   r: 'devel'   }
           - {os: ubuntu-20.04,   r: 'release' }
           - {os: ubuntu-20.04,   r: 'oldrel'  }
-          - {os: ubuntu-20.04,   r: '3.3'     }
 
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
@@ -40,7 +39,7 @@ jobs:
       - uses: r-lib/actions/setup-tinytex@v1
       - run: |
           tlmgr --version
-          tlmgr install ae  ## Needed by vignette
+          tlmgr install ae grfext ## Needed by vignette
           tlmgr list --only-installed
 
       - uses: r-lib/actions/setup-pandoc@master

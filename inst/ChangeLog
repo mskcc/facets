@@ -1,12 +1,13 @@
-10/11/2021: v0.6.1-9001
+06/26/2022: v0.6.2-9001
+
+  o Add citation(package = "facets")
+
+10/12/2021: v0.6.2
 
   o reduce memory footprint of
 	procSnps: working on rcmat directly instead of creating out
 	counts2logROR: working directly on out (input nam now instead of mat)
   o added rePreProcSample to help reanalysis starting from procSample output
-
-10/08/2021: v0.6.1-9001
-
   o Register native API.
   o Fix partial argument and element names.
 
