@@ -12,6 +12,8 @@ procSnps <- function(rcmat, ndepth=35, het.thresh=0.25, snp.nbhd=250, nX=23, unm
     row.names(rcmat) <- NULL # reset row names so that it's 1:nsnps
     rcmat$NOR.RD = 1 - rcmat$NOR.RD/rcmat$NOR.DP
     rcmat$TUM.RD = 1 - rcmat$TUM.RD/rcmat$TUM.DP
+    # ensure rcmat fields in required order
+    rcmat <- rcmat[,c('Chromosome','Position','NOR.DP','NOR.RD','TUM.DP','TUM.RD')] 
     names(rcmat) = c("chrom", "maploc", "rCountN", "vafN", "rCountT", "vafT")
     # make chromosome ordered and numeric
     rcmat$chrom <- as.numeric(ordered(rcmat$chrom, levels = chromlevels))
