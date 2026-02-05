@@ -23,6 +23,6 @@ Maintainer: \packageMaintainer{facets}
 \references{
   Shen, R and Seshan, VE (2016). FACETS: allele-specific copy number and
   clonal heterogeneity analysis tool for high-throughput DNA sequencing.
-  \emph{Nucleic Acids Research} \url{https://doi.org/10.1093/nar/gkw520} 
+  \emph{Nucleic Acids Research} \doi{10.1093/nar/gkw520}
 }
 \keyword{package}
